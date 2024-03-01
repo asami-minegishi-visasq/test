@@ -15,6 +15,7 @@ jobs:
   switch-traffic-prod:
     needs: set-tag
     runs-on: ubuntu-latest
+    if: github.ref_name == 'main'
     environment: prod
     steps:
       - name: deploy
@@ -22,6 +23,7 @@ jobs:
   switch-traffic-stg:
     needs: set-tag
     runs-on: ubuntu-latest
+    if: github.ref_name == 'staging'
     environment: stg
     steps:
       - name: deploy
