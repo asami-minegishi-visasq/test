@@ -9,12 +9,14 @@ jobs:
       - name: build
         run: echo 'build...'
   deployment:
+    needs: build
     runs-on: ubuntu-latest
     environment: prod
     steps:
       - name: deploy
         run: echo 'deploy...'
   check:
+    needs: deployment
     runs-on: ubuntu-latest
     steps:
       - name: check
