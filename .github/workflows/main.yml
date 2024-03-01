@@ -8,7 +8,6 @@ on:
 env:
   VERSION: v1
 
-
 jobs:
   set-tag:
     runs-on: ubuntu-latest
