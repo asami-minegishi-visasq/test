@@ -29,6 +29,7 @@ jobs:
       - name: deploy
         run: echo 'deploy...'
   cleanup-revision-tags:
+    if: ${{ always() }}
     needs: 
       - switch-traffic-prod
       - switch-traffic-stg
