@@ -5,37 +5,52 @@ on:
     branches:
       - main
       - staging
-      
+env:
+  VERSION: v1
+
 jobs:
   set-tag:
     runs-on: ubuntu-latest
+    outputs:
+      revision_base: ${{ steps.set_env.outputs.revision_base }}
+      release_number: ${{ steps.set_env.outputs.release_number }}
     steps:
-      - name: build
-        run: echo 'build...'
-  switch-traffic-prod:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set environment for branch
+        id: set_env
+        run: |
+          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+              echo "revision_base=release" >> "$GITHUB_ENV"
+          elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
+              echo "revision_base=staging" >> "$GITHUB_ENV"
+          fi
+          latest_tag=$(git tag -l --sort=version:refname "$revision_base*" | tail -n 1)
+          release_number=$(echo $latest_tag | sed "s/${revision_base}-${{ env.VERSION }}-//" | awk '{print $0+1}')
+          echo "release_number=${release_number}" >> $GITHUB_ENV
+      - name: Create and Push New Tag
+        run: |
+          tag_name="${{ env.tag_prefix }}-${{ env.VERSION }}-${{ env.release_number }}"
+          git tag $tag_name
+          git push origin $tag_name
+        
+          
+  switch-traffic:
     needs: set-tag
     runs-on: ubuntu-latest
-    if: github.ref_name == 'main'
     environment: prod
     steps:
       - name: deploy
-        run: echo 'deploy...'
-      - name: Exit code
-        run: exit 1
-  switch-traffic-stg:
-    needs: set-tag
-    runs-on: ubuntu-latest
-    if: github.ref_name == 'staging'
-    environment: stg
-    steps:
-      - name: deploy
-        run: echo 'deploy...'
+        run: |
+          echo ${{ needs.set-tag.outputs.revision_base }}
+          echo ${{ needs.set-tag.outputs.release_number }}
+          
   cleanup-revision-tags:
-    if: ${{ always() }}
-    needs: 
-      - switch-traffic-prod
-      - switch-traffic-stg
+    needs: switch-traffic
     runs-on: ubuntu-latest
     steps:
+      - name: Sleep for 3 minutes
+        run: sleep 180s
       - name: check
         run: echo 'check...'
