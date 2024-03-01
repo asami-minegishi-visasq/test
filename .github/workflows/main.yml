@@ -30,6 +30,7 @@ jobs:
         id: set_tag
         run: |
           latest_tag=$(git tag -l --sort=version:refname "${{ env.revision_base }}*" | tail -n 1)
+          echo $latest_tag
           release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ env.VERSION }}-//" | awk '{print $0+1}')
           echo "release_number=${release_number}" >> $GITHUB_ENV
       - name: Create and Push New Tag
