@@ -1,22 +1,35 @@
 name: Deployment
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - staging
+      
 jobs:
-  build:
+  set-tag:
     runs-on: ubuntu-latest
     steps:
       - name: build
         run: echo 'build...'
-  deployment:
-    needs: build
+  switch-traffic-prod:
+    needs: set-tag
     runs-on: ubuntu-latest
     environment: prod
     steps:
       - name: deploy
         run: echo 'deploy...'
-  check:
-    needs: deployment
+  switch-traffic-stg:
+    needs: set-tag
+    runs-on: ubuntu-latest
+    environment: stg
+    steps:
+      - name: deploy
+        run: echo 'deploy...'
+  cleanup-revision-tags:
+    needs: 
+      - switch-traffic-prod
+      - switch-traffic-stg
     runs-on: ubuntu-latest
     steps:
       - name: check
