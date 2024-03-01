@@ -1,10 +1,10 @@
 name: Deployment
-
 on:
   push:
     branches:
       - main
       - staging
+
 env:
   VERSION: v1
 
@@ -12,32 +12,43 @@ jobs:
   set-tag:
     runs-on: ubuntu-latest
     outputs:
-      revision_base: ${{ steps.set_env.outputs.revision_base }}
-      release_number: ${{ steps.set_tag.outputs.release_number }}
+      id: set_tag
+      settable: ${{ steps.set_tag.outputs.settable }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Set environment for branch
-        id: set_env
-        run: |
-          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-              echo "revision_base=release" >> "$GITHUB_ENV"
-          elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
-              echo "revision_base=staging" >> "$GITHUB_ENV"
-          fi
-      - name: Set environment for branch
+      - name: Set environment for branch and tag
         id: set_tag
         run: |
-          latest_tag=$(git tag -l --sort=version:refname "${{ env.revision_base }}*" | tail -n 1)
-          echo $latest_tag
-          release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ env.VERSION }}-//" | awk '{print $0+1}')
+          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+              revision_base="release"
+          elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
+              revision_base="staging"
+          else
+              echo "Unsupported branch. Exiting..."
+              exit 1
+          fi
+          
+          latest_tag=$(git tag -l --sort=version:refname "${revision_base}-${VERSION}*" | tail -n 1)
+          echo "latest_tag=${latest_tag}" >> $GITHUB_ENV
+          
+          release_number=$(echo $latest_tag | sed "s/${revision_base}-${VERSION}-//" | awk '{print $0+1}')
           echo "release_number=${release_number}" >> $GITHUB_ENV
+          
+          echo "settable=1" >> $GITHUB_ENV
+
+  create-and-push-tag:
+    needs: set-tag
+    runs-on: ubuntu-latest
+    if: needs.set-tag.outputs.settable == '1'
+    steps:
       - name: Create and Push New Tag
         run: |
           tag_name="${{ env.revision_base }}-${{ env.VERSION }}-${{ env.release_number }}"
           git tag $tag_name
           git push origin $tag_name
+
         
           
   switch-traffic:
