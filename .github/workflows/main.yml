@@ -3,6 +3,11 @@ name: Deployment
 on:
   workflow_dispatch:
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: build
+        run: echo 'build...'
   deployment:
     runs-on: ubuntu-latest
     environment: prod
