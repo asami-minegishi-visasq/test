@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: deploy
         run: echo 'deploy...'
+      - name: Exit code
+        run: exit 1
   switch-traffic-stg:
     needs: set-tag
     runs-on: ubuntu-latest
