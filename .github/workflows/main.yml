@@ -6,67 +6,100 @@ on:
       - staging
 
 env:
-  VERSION: v1
+  SERVICE_NAME: test
+  APP_VERSION: v1
+  GCLOUD_SDK_VERSION: 457.0.0
+  REGION: us-central1
 
 jobs:
   set-tag:
     runs-on: ubuntu-latest
     outputs:
       id: set_tag
-      revision_base: ${{ steps.set_env.outputs.revision_base }}
-      release_number: ${{ steps.set_env.outputs.release_number }}
-      settable: ${{ steps.set_tag.outputs.settable }}
+      tag_name: ${{ steps.set_env.outputs.tag_name }}
+      ready_tag_name: ${{ steps.set_env.outputs.ready_tag_name }}
+      project_id: ${{ steps.set_env.outputs.project_id }}
+      service_account_key: ${{ steps.set_env.outputs.service_account_key }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-
+      - uses: actions/checkout@v3
       - name: Set environment for branch and tag
         id: set_env
         run: |
           git fetch --prune --unshallow
           if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
               revision_base="release"
+              ready_tag_name="ready-prod"
+              project_id=${{ secrets.GCP_PROJECT_ID_PROD }}
+              service_account_key=${{ secrets.GCP_SA_KEY_PROD }}
           elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
               revision_base="staging"
+              ready_tag_name="ready-stg"
+              project_id=${{ secrets.GCP_PROJECT_ID_STG }}
+              service_account_key=${{ secrets.GCP_SA_KEY_STG }}
           else
               echo "Unsupported branch. Exiting..."
               exit 1
           fi
           echo "revision_base=${revision_base}" >> $GITHUB_ENV
+          echo "ready_tag_name=${ready_tag}" >> $GITHUB_ENV
           
           # Debug: Show available tags
           echo "Available tags:"
           git tag -l
           
-          latest_tag=$(git tag -l --sort=version:refname "${revision_base}-${VERSION}*" | tail -n 1)
-          echo "latest_tag=${latest_tag}" >> $GITHUB_ENV
+          latest_tag=$(git tag -l --sort=version:refname "${revision_base}-${{ env.APP_VERSION }}*" | tail -n 1)
           
-          release_number=$(echo $latest_tag | sed "s/${revision_base}-${VERSION}-//" | awk '{print $0+1}')
+          release_number=$(echo $latest_tag | sed "s/${revision_base}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
           echo "release_number=${release_number}" >> $GITHUB_ENV
           
       - name: Create and Push New Tag
         run: |
-          tag_name="${{ env.revision_base }}-${{ env.VERSION }}-${{ env.release_number }}"
+          tag_name="${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ env.release_number }}"
           git tag $tag_name
           git push origin $tag_name
-
-        
+          echo "tag_name=${tag_name}" >> $GITHUB_ENV
           
   switch-traffic:
     needs: set-tag
     runs-on: ubuntu-latest
     environment: prod
     steps:
-      - name: deploy
+      - name: test
         run: |
-          echo ${{ needs.set-tag.outputs.revision_base }}
-          echo ${{ needs.set-tag.outputs.release_number }}
+          echo ${{ needs.set-tag.outputs.tag_name }}
+
+      # - name: Authenticate with Google Cloud
+      #   run: |
+      #     uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      #     with:
+      #       version: ${{ env.GCLOUD_SDK_VERSION }}
+      #       project_id: ${{ env.project_id }}
+      #       service_account_key: ${{ env.service_account_key }}
+      #       export_default_credentials: true
+            
+      # - name: List Cloud Run services
+      #   run: |
+      #     services=$(gcloud run services list --format="value(name)" --filter="metadata.name:$SERVICE_NAME*")
+      #     echo "services=${services}" >> $GITHUB_ENV
           
-  cleanup-revision-tags:
-    needs: switch-traffic
-    runs-on: ubuntu-latest
-    steps:
-      # - name: Sleep for 3 minutes
+      # - name: Switch Traffic
+      #   run: |
+      #     for service in ${{ env.services }}; do
+      #       revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
+      #       if gcloud run revisions describe "$revision" --format="value(status)" 2>/dev/null | grep -q "SERVING"; then
+      #         gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions="$revision"
+      #         echo "Updated traffic for service $service to revision $revision"
+      #       else
+      #         echo "Revision $revision not found or not serving for service $service"
+      #       fi
+      #     done
+      
+      # - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
       #   run: sleep 180s
-      - name: check
-        run: echo 'check...'
+        
+      # - name: Cleanup revision-tags
+      #   run: |
+      #     for service in ${{ env.services }}; do
+      #       revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
+      #       gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags ${{ needs.set-tag.outputs.ready_tag_name }}=$revision, ${{ needs.set-tag.outputs.tag_name }}=$revision
+      #     done
