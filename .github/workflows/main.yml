@@ -20,6 +20,7 @@ jobs:
       ready_tag_name: ${{ steps.set_env.outputs.ready_tag_name }}
       project_id: ${{ steps.set_env.outputs.project_id }}
       service_account_key: ${{ steps.set_env.outputs.service_account_key }}
+      environment: ${{ steps.set_env.outputs.environment }}
     steps:
       - uses: actions/checkout@v3
       - name: Set environment for branch and tag
@@ -27,11 +28,13 @@ jobs:
         run: |
           git fetch --prune --unshallow
           if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+              environment="prod"
               revision_base="release"
               ready_tag_name="ready-prod"
               project_id=${{ secrets.GCP_PROJECT_ID_PROD }}
               service_account_key=${{ secrets.GCP_SA_KEY_PROD }}
           elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
+              environment="stg"
               revision_base="staging"
               ready_tag_name="ready-stg"
               project_id=${{ secrets.GCP_PROJECT_ID_STG }}
@@ -62,7 +65,7 @@ jobs:
   switch-traffic:
     needs: set-tag
     runs-on: ubuntu-latest
-    environment: prod
+    environment: ${{ needs.set-tag.outputs.environment }}
     steps:
       - name: test
         run: |
