@@ -32,6 +32,7 @@ jobs:
               echo "Unsupported branch. Exiting..."
               exit 1
           fi
+          echo "revision_base=${revision_base}" >> $GITHUB_ENV
           
           # Debug: Show available tags
           echo "Available tags:"
