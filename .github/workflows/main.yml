@@ -32,6 +32,10 @@ jobs:
               exit 1
           fi
           
+          # Debug: Show available tags
+          echo "Available tags:"
+          git tag -l
+          
           latest_tag=$(git tag -l --sort=version:refname "${revision_base}-${VERSION}*" | tail -n 1)
           echo "latest_tag=${latest_tag}" >> $GITHUB_ENV
           
