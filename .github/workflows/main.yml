@@ -15,7 +15,6 @@ jobs:
   set-tag:
     runs-on: ubuntu-latest
     outputs:
-      id: set_tag
       tag_name: ${{ steps.set_env.outputs.tag_name }}
       ready_tag_name: ${{ steps.set_env.outputs.ready_tag_name }}
       project_id: ${{ steps.set_env.outputs.project_id }}
