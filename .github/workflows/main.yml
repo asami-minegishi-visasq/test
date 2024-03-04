@@ -27,23 +27,21 @@ jobs:
         run: |
           git fetch --prune --unshallow
           if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-              environment="prod"
-              revision_base="release"
-              ready_tag_name="ready-prod"
-              project_id=${{ secrets.GCP_PROJECT_ID_PROD }}
-              service_account_key=${{ secrets.GCP_SA_KEY_PROD }}
+              echo "revision_base=release" >> $GITHUB_ENV
+              echo "environment=prod" >> $GITHUB_OUTPUT
+              echo "ready_tag_name=ready-prod" >> $GITHUB_OUTPUT
+              echo "project_id=${{ secrets.GCP_PROJECT_ID_PROD }}" >> $GITHUB_OUTPUT
+              echo "service_account_key=${{ secrets.GCP_SA_KEY_PROD }}" >> $GITHUB_OUTPUT
           elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
-              environment="stg"
-              revision_base="staging"
-              ready_tag_name="ready-stg"
-              project_id=${{ secrets.GCP_PROJECT_ID_STG }}
-              service_account_key=${{ secrets.GCP_SA_KEY_STG }}
+              echo "revision_base=staging" >> $GITHUB_ENV
+              echo "environment=stg" >> $GITHUB_OUTPUT
+              echo "ready_tag_name=ready-stg" >> $GITHUB_OUTPUT
+              echo "project_id=${{ secrets.GCP_PROJECT_ID_STG }}" >> $GITHUB_OUTPUT
+              echo "service_account_key=${{ secrets.GCP_SA_KEY_STG }}" >> $GITHUB_OUTPUT
           else
               echo "Unsupported branch. Exiting..."
               exit 1
           fi
-          echo "revision_base=${revision_base}" >> $GITHUB_ENV
-          echo "ready_tag_name=${ready_tag}" >> $GITHUB_ENV
           
           # Debug: Show available tags
           echo "Available tags:"
@@ -60,7 +58,7 @@ jobs:
           tag_name="${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ env.release_number }}"
           git tag $tag_name
           git push origin $tag_name
-          echo "tag_name=${tag_name}" >> $GITHUB_ENV
+          echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
           
   switch-traffic:
     needs: set-tag
