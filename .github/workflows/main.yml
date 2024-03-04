@@ -15,11 +15,11 @@ jobs:
   set-tag:
     runs-on: ubuntu-latest
     outputs:
-      tag_name: ${{ steps.set_env.outputs.tag_name }}
+      environment: ${{ steps.set_env.outputs.environment }}
       ready_tag_name: ${{ steps.set_env.outputs.ready_tag_name }}
       project_id: ${{ steps.set_env.outputs.project_id }}
       service_account_key: ${{ steps.set_env.outputs.service_account_key }}
-      environment: ${{ steps.set_env.outputs.environment }}
+      tag_name: ${{ steps.set_tag.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v3
       - name: Set environment for branch and tag
@@ -55,6 +55,7 @@ jobs:
           echo "release_number=${release_number}" >> $GITHUB_ENV
           
       - name: Create and Push New Tag
+        id: set_tag
         run: |
           tag_name="${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ env.release_number }}"
           git tag $tag_name
@@ -64,7 +65,8 @@ jobs:
   switch-traffic:
     needs: set-tag
     runs-on: ubuntu-latest
-    environment: ${{ needs.set-tag.outputs.environment }}
+    environment: 
+      name: ${{ needs.set-tag.outputs.environment }}
     steps:
       - name: test
         run: |
