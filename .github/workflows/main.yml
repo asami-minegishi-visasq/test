@@ -17,8 +17,8 @@ jobs:
       release_number: ${{ steps.set_env.outputs.release_number }}
       settable: ${{ steps.set_tag.outputs.settable }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+      # - name: Checkout Repository
+      #   uses: actions/checkout@v2
 
       - name: Set environment for branch and tag
         id: set_env
