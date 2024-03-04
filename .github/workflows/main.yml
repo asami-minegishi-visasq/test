@@ -78,10 +78,15 @@ jobs:
           echo ${{ needs.set-tag.outputs.tag_name }}
           
       - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v0.8.0
+        uses: 'google-github-actions/auth@v1'
         with:
           workload_identity_provider: ${{ secrets.WAP }}
           service_account: ${{ secrets.SA }}
+          
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+        with:
+          version: ${{ env.GCLOUD_SDK_VERSION }}
           
       - name: Test Cloud Run services
         run: |
