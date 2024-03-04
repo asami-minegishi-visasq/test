@@ -42,14 +42,17 @@ jobs:
               echo "Unsupported branch. Exiting..."
               exit 1
           fi
-          
+                    
+      - name: Get Tag List
+        id: get_tag
+        run: |
           # Debug: Show available tags
           echo "Available tags:"
           git tag -l
           
-          latest_tag=$(git tag -l --sort=version:refname "${revision_base}-${{ env.APP_VERSION }}*" | tail -n 1)
+          latest_tag=$(git tag -l --sort=version:refname "${{ env.revision_base }}-${{ env.APP_VERSION }}*" | tail -n 1)
           
-          release_number=$(echo $latest_tag | sed "s/${revision_base}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
+          release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
           echo "release_number=${release_number}" >> $GITHUB_ENV
           
       - name: Create and Push New Tag
