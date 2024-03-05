@@ -30,6 +30,7 @@ jobs:
           echo "environment=stg" >> $GITHUB_OUTPUT
           echo "ready_tag_name=ready-stg" >> $GITHUB_OUTPUT
           echo "project_id=654321" >> $GITHUB_OUTPUT
+          echo "project_name=test-project-stg" >> $GITHUB_OUTPUT
           echo "service_account_key=${{ secrets.GCP_SA_KEY_STG }}" >> $GITHUB_OUTPUT
           echo "slack_channel=C05M6J3MPL7" >> $GITHUB_OUTPUT
           if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
@@ -37,6 +38,7 @@ jobs:
               echo "environment=prod" >> $GITHUB_OUTPUT
               echo "ready_tag_name=ready-prod" >> $GITHUB_OUTPUT
               echo "project_id=123456" >> $GITHUB_OUTPUT
+              echo "project_name=test-project-prod" >> $GITHUB_OUTPUT
               echo "service_account_key=${{ secrets.GCP_SA_KEY_PROD }}" >> $GITHUB_OUTPUT
               echo "slack_channel=C05NAR4D3NU" >> $GITHUB_OUTPUT
           fi
@@ -72,8 +74,8 @@ jobs:
           # curl -X POST https://slack.com/api/chat.postMessage \
           #   -H "Authorization: Bearer ${{ secrets.SLACK_OAUTH_ACCESS_TOKEN }}" \
           #   -H "Content-type: application/json" \
-          #   -d "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_id }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
-          echo "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_id }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
+          #   -d "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
+          echo "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
 
  
   switch-traffic:
