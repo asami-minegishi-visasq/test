@@ -72,7 +72,7 @@ jobs:
           echo ${{ steps.set_env.outputs.slack_channel }}
           echo ${{ github.ref_name }}
           # curl -X POST https://slack.com/api/chat.postMessage \
-          #   -H "Authorization: Bearer ${{ secrets.SLACK_OAUTH_ACCESS_TOKEN }}" \
+          #   -H "Authorization: Bearer ${{ secrets.VISASQ_SLACK_OAUTH_ACCESS_TOKEN }}" \
           #   -H "Content-type: application/json" \
           #   -d "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
           echo "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
@@ -135,12 +135,3 @@ jobs:
               done
             fi
           done
-
-      - name: Process Values
-        run: |
-          values=(${{ vars.PROTECTED_REVISION_TAGS }})
-          if [[ -n values ]]; then
-            for value in "${values[@]}"; do
-              echo "Processing value: $value"
-            done
-          fi
