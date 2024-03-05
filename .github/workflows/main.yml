@@ -103,16 +103,13 @@ jobs:
         run: |
           for service in ${{ env.services }}; do
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-            if gcloud run revisions describe "$revision" --region=${{ env.REGION }} --format="value(status)"; then
-              gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions="$revision"
-              echo "Updated traffic for service $service to revision $revision"
-            else
-              echo "Revision $revision not found or not serving for service $service"
-            fi
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions $revision=100
+            echo "Updated traffic for service $service to revision $revision"
           done
       
-      # - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
-      #   run: sleep 180s
+      - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
+        if: ${{ success() }}
+        run: sleep 1s
         
       - name: Cleanup revision-tags
         run: |
