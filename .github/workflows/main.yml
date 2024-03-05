@@ -121,11 +121,11 @@ jobs:
           done
       
       - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
-        if: ${{ success() }} && $GITHUB_REF == 'refs/heads/main'
+        if: ${{ success() }} && github.ref == 'refs/heads/main'
         run: sleep 1s
         
       - name: Cleanup revision-tags
-        if: $GITHUB_REF == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         run: |
           for service in ${{ env.services }}; do
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
