@@ -91,40 +91,32 @@ jobs:
           
       - name: Test Cloud Run services
         run: |
+          # Debug: Show all services list
           gcloud run services list --format="value(name)"
-
-      # - name: Authenticate with Google Cloud
-      #   run: |
-      #     uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-      #     with:
-      #       version: ${{ env.GCLOUD_SDK_VERSION }}
-      #       project_id: ${{ env.project_id }}
-      #       service_account_key: ${{ env.service_account_key }}
-      #       export_default_credentials: true
             
-      # - name: List Cloud Run services
-      #   run: |
-      #     services=$(gcloud run services list --format="value(name)" --filter="metadata.name:$SERVICE_NAME*")
-      #     echo "services=${services}" >> $GITHUB_ENV
+      - name: List Cloud Run services
+        run: |
+          services=$(gcloud run services list --format="value(name)" --filter="metadata.name:$SERVICE_NAME*")
+          echo "services=${services}" >> $GITHUB_ENV
           
-      # - name: Switch Traffic
-      #   run: |
-      #     for service in ${{ env.services }}; do
-      #       revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-      #       if gcloud run revisions describe "$revision" --format="value(status)" 2>/dev/null | grep -q "SERVING"; then
-      #         gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions="$revision"
-      #         echo "Updated traffic for service $service to revision $revision"
-      #       else
-      #         echo "Revision $revision not found or not serving for service $service"
-      #       fi
-      #     done
+      - name: Switch Traffic
+        run: |
+          for service in ${{ env.services }}; do
+            revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
+            if gcloud run revisions describe "$revision" --format="value(status)" 2>/dev/null | grep -q "SERVING"; then
+              gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions="$revision"
+              echo "Updated traffic for service $service to revision $revision"
+            else
+              echo "Revision $revision not found or not serving for service $service"
+            fi
+          done
       
-      # - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
-      #   run: sleep 180s
+      - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
+        run: sleep 180s
         
-      # - name: Cleanup revision-tags
-      #   run: |
-      #     for service in ${{ env.services }}; do
-      #       revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-      #       gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags ${{ needs.set-tag.outputs.ready_tag_name }}=$revision, ${{ needs.set-tag.outputs.tag_name }}=$revision
-      #     done
+      - name: Cleanup revision-tags
+        run: |
+          for service in ${{ env.services }}; do
+            revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags ${{ needs.set-tag.outputs.ready_tag_name }}=$revision, ${{ needs.set-tag.outputs.tag_name }}=$revision
+          done
