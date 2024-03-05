@@ -65,6 +65,9 @@ jobs:
 
       - name: Notify to Slack
         run: |
+          echo ${{ steps.set_tag.outputs.tag_name }}
+          echo ${{ env.slack_channel }}
+          echo ${{ env.project_id }}
           # curl -X POST https://slack.com/api/chat.postMessage \
           #   -H "Authorization: Bearer ${{ secrets.SLACK_OAUTH_ACCESS_TOKEN }}" \
           #   -H "Content-type: application/json" \
