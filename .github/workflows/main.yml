@@ -92,18 +92,18 @@ jobs:
       - name: Test Cloud Run services
         run: |
           # Debug: Show all services list
-          gcloud run services list --format="value(name)"
+          gcloud run services list --region=${{ env.REGION }} --format="value(name)"
             
       - name: List Cloud Run services
         run: |
-          services=$(gcloud run services list --format="value(name)" --filter="metadata.name:$SERVICE_NAME*")
+          services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:$SERVICE_NAME*")
           echo "services=${services}" >> $GITHUB_ENV
           
       - name: Switch Traffic
         run: |
           for service in ${{ env.services }}; do
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-            if gcloud run revisions describe "$revision" --format="value(status)"; then
+            if gcloud run revisions describe "$revision" --region=${{ env.REGION }} --format="value(status)"; then
               gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions="$revision"
               echo "Updated traffic for service $service to revision $revision"
             else
