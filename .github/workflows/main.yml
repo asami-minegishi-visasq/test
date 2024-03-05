@@ -103,7 +103,7 @@ jobs:
         run: |
           for service in ${{ env.services }}; do
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-            if gcloud run revisions describe "$revision" --format="value(status)" 2>/dev/null | grep -q "SERVING"; then
+            if gcloud run revisions describe "$revision" --format="value(status)"; then
               gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions="$revision"
               echo "Updated traffic for service $service to revision $revision"
             else
@@ -111,12 +111,12 @@ jobs:
             fi
           done
       
-      - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
-        run: sleep 180s
+      # - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
+      #   run: sleep 180s
         
       - name: Cleanup revision-tags
         run: |
           for service in ${{ env.services }}; do
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags ${{ needs.set-tag.outputs.ready_tag_name }}=$revision, ${{ needs.set-tag.outputs.tag_name }}=$revision
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags ${{ needs.set-tag.outputs.ready_tag_name }}=$revision,${{ needs.set-tag.outputs.tag_name }}=$revision
           done
