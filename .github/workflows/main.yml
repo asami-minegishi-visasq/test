@@ -31,14 +31,14 @@ jobs:
           echo "ready_tag_name=ready-stg" >> $GITHUB_OUTPUT
           echo "project_id=${{ secrets.GCP_PROJECT_ID_STG }}" >> $GITHUB_OUTPUT
           echo "service_account_key=${{ secrets.GCP_SA_KEY_STG }}" >> $GITHUB_OUTPUT
-          echo "slack_channel=C05M6J3MPL7" >> $GITHUB_OUTPUT　# log-vq-release-stg
+          echo "slack_channel=C05M6J3MPL7" >> $GITHUB_ENV　# log-vq-release-stg
           if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
               echo "revision_base=release" >> $GITHUB_ENV
               echo "environment=prod" >> $GITHUB_OUTPUT
               echo "ready_tag_name=ready-prod" >> $GITHUB_OUTPUT
               echo "project_id=${{ secrets.GCP_PROJECT_ID_PROD }}" >> $GITHUB_OUTPUT
               echo "service_account_key=${{ secrets.GCP_SA_KEY_PROD }}" >> $GITHUB_OUTPUT
-              echo "slack_channel=C05NAR4D3NU" >> $GITHUB_OUTPUT　# log-vq-release-prod
+              echo "slack_channel=C05NAR4D3NU" >> $GITHUB_ENV　# log-vq-release-prod
           fi
                     
       - name: Get Tag List
