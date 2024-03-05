@@ -79,8 +79,8 @@ jobs:
 
       - name: Process Values
         run: |
-          if [[ -v vars.PROTECTED_REVISION_TAGS ]]; then
-            values=(${{ vars.PROTECTED_REVISION_TAGS }})
+          values=(${{ vars.PROTECTED_REVISION_TAGS }})
+          if [[ -n values ]]; then
             for value in "${values[@]}"; do
               echo "Processing value: $value"
             done
