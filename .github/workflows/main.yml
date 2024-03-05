@@ -1,10 +1,10 @@
 name: Deployment
 on:
+  workflow_dispatch: 
   push:
     branches:
       - main
       - staging
-  workflow_dispatch: {}
 
 env:
   SERVICE_NAME: test
@@ -26,6 +26,12 @@ jobs:
       - name: Set environment for branch and tag
         id: set_env
         run: |
+          echo "revision_base=staging" >> $GITHUB_ENV
+          echo "environment=stg" >> $GITHUB_OUTPUT
+          echo "ready_tag_name=ready-stg" >> $GITHUB_OUTPUT
+          echo "project_id=${{ secrets.GCP_PROJECT_ID_STG }}" >> $GITHUB_OUTPUT
+          echo "service_account_key=${{ secrets.GCP_SA_KEY_STG }}" >> $GITHUB_OUTPUT
+          echo "slack_channel=C05M6J3MPL7 >> $GITHUB_OUTPUT　# log-vq-release-stg
           if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
               echo "revision_base=release" >> $GITHUB_ENV
               echo "environment=prod" >> $GITHUB_OUTPUT
@@ -33,17 +39,6 @@ jobs:
               echo "project_id=${{ secrets.GCP_PROJECT_ID_PROD }}" >> $GITHUB_OUTPUT
               echo "service_account_key=${{ secrets.GCP_SA_KEY_PROD }}" >> $GITHUB_OUTPUT
               echo "slack_channel=C05NAR4D3NU >> $GITHUB_OUTPUT　# log-vq-release-prod
-          elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
-              echo "revision_base=staging" >> $GITHUB_ENV
-              echo "environment=stg" >> $GITHUB_OUTPUT
-              echo "ready_tag_name=ready-stg" >> $GITHUB_OUTPUT
-              echo "project_id=${{ secrets.GCP_PROJECT_ID_STG }}" >> $GITHUB_OUTPUT
-              echo "service_account_key=${{ secrets.GCP_SA_KEY_STG }}" >> $GITHUB_OUTPUT
-              echo "slack_channel=C05M6J3MPL7 >> $GITHUB_OUTPUT　# log-vq-release-stg
-          else
-              echo "Unsupported branch. Exiting..."
-              echo $GITHUB_REF
-              exit 1
           fi
                     
       - name: Get Tag List
@@ -86,10 +81,6 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-      - name: test
-        run: |
-          echo ${{ needs.set-tag.outputs.tag_name }}
-          
       - uses: actions/checkout@v3
       - name: Authenticate with Google Cloud
         uses: 'google-github-actions/auth@v1'
