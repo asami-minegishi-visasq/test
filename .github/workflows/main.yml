@@ -78,6 +78,7 @@ jobs:
           echo "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
 
       - name: Process Values
+        if: vars.PROTECTED_REVISION_TAGS != ''
         run: |
           values=(${{ vars.PROTECTED_REVISION_TAGS }})
           for value in "${values[@]}"; do
