@@ -21,7 +21,7 @@ jobs:
       project_id: ${{ steps.set_env.outputs.project_id }}
       service_account_key: ${{ steps.set_env.outputs.service_account_key }}
       tag_name: ${{ steps.set_tag.outputs.tag_name }}
-      revision_base: ${{ steps.set_tag.outputs.revision_base }}
+      revision_base: ${{ steps.set_env.outputs.revision_base }}
     steps:
       - uses: actions/checkout@v3
       - name: Set environment for branch and tag
@@ -128,10 +128,9 @@ jobs:
           for service in ${{ env.services }}; do
             protected_revision_tags=''
             if [[ -n values ]]; then
-              protected_revision_tags=','
               for value in "${values[@]}"; do
                 if [[ value = ${{ needs.set-tag.outputs.revision_base }}* ]]
-                  protected_revision_tags+=${value}=${service}-${value}
+                  protected_revision_tags+=",${value}=${service}-${value}"
               done
             fi
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
