@@ -125,9 +125,10 @@ jobs:
       - name: Cleanup revision-tags
         run: |
           values=${{ vars.PROTECTED_REVISION_TAGS }}
+          values=(${values//,/ })
           for service in ${{ env.services }}; do
             protected_revision_tags=""
-            for value in "${(${values//,/ })[@]}"; do
+            for value in "${values[@]}"; do
               if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]]; then
                 protected_revision_tags+=",${value}=${service}-${value}"
               fi
