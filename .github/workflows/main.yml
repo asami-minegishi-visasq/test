@@ -129,7 +129,7 @@ jobs:
             protected_revision_tags=""
             for value in "${values[@]}"; do
               if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]]; then
-                protected_revision_tags+=$(echo ",${value}=${service}-${value}" | tr -d '\n')
+                protected_revision_tags+=$(echo ",${value}=${service}-${value}" | tr -d '\\n')
               fi
             done
             echo $protected_revision_tags
