@@ -133,6 +133,7 @@ jobs:
                   protected_revision_tags+=",${value}=${service}-${value}"
                 fi
               done
+              protected_revision_tags=$(echo "$protected_revision_tags" | tr -d '\n')
             fi
             echo $protected_revision_tags
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
