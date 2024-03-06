@@ -127,13 +127,13 @@ jobs:
           values=(${{ vars.PROTECTED_REVISION_TAGS }})
           for service in ${{ env.services }}; do
             protected_revision_tags=""
-            if [[ -n values ]]; then
+            if [[ -n $values ]]; then
               for value in "${values[@]}"; do
-                if [[ value = ${{ needs.set-tag.outputs.revision_base }}* ]]
+                if [[ value == ${{ needs.set-tag.outputs.revision_base }}* ]]
                   protected_revision_tags+=",${value}=${service}-${value}"
               done
             fi
             echo $protected_revision_tags
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags ${{ needs.set-tag.outputs.ready_tag_name }}=$revision,${{ needs.set-tag.outputs.tag_name }}=$revision$protected_revision_tags
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags "${{ needs.set-tag.outputs.ready_tag_name }}=${revision},${{ needs.set-tag.outputs.tag_name }}=${revision}${protected_revision_tags}"
           done
