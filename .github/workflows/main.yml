@@ -131,6 +131,7 @@ jobs:
               for value in "${values[@]}"; do
                 if [[ value == ${{ needs.set-tag.outputs.revision_base }}* ]]
                   protected_revision_tags+=",${value}=${service}-${value}"
+                fi
               done
             fi
             echo $protected_revision_tags
