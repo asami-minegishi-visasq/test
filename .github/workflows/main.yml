@@ -124,6 +124,7 @@ jobs:
         
       - name: Cleanup revision-tags
         run: |
+          IFS=,
           echo (${{ vars.PROTECTED_REVISION_TAGS }})
           for service in ${{ env.services }}; do
             protected_revision_tags=""
