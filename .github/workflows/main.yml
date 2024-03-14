@@ -28,16 +28,15 @@ jobs:
       - name: Set environment for branch and tag
         id: set_env
         run: |
-          if [[ $GITHUB_REF != *"/test_"* ]]; then
-            echo "tesssssssssssssssssssssstttttttt"
-          fi
           echo "revision_base=staging" >> $GITHUB_OUTPUT
           echo "environment=stg" >> $GITHUB_OUTPUT
           echo "ready_tag_name=ready-stg" >> $GITHUB_OUTPUT
           echo "project_id=400301755221" >> $GITHUB_OUTPUT
           echo "project_name=private-asami-minegishi-01" >> $GITHUB_OUTPUT
           echo "slack_channel=C0185CQ1Q3S" >> $GITHUB_OUTPUT
-          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+          if [[ $GITHUB_REF == *"/test_"* ]]; then
+            echo "tesssssssssssssssssssssstttttttt"
+          elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
               echo "revision_base=release" >> $GITHUB_OUTPUT
               echo "environment=prod" >> $GITHUB_OUTPUT
               echo "ready_tag_name=ready-prod" >> $GITHUB_OUTPUT
