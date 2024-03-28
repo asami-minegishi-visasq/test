@@ -9,7 +9,6 @@ on:
 env:
   SERVICE_NAME: test
   APP_VERSION: v1
-  GCLOUD_SDK_VERSION: 457.0.0
   REGION: us-central1
 
 jobs:
@@ -98,8 +97,6 @@ jobs:
           
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
-        with:
-          version: ${{ env.GCLOUD_SDK_VERSION }}
           
       - name: Test Cloud Run services
         run: |
