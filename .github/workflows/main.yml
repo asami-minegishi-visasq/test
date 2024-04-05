@@ -9,7 +9,6 @@ on:
 env:
   SERVICE_NAME: test
   APP_VERSION: v1
-  GCLOUD_SDK_VERSION: 457.0.0
   REGION: us-central1
 
 jobs:
@@ -19,26 +18,30 @@ jobs:
       environment: ${{ steps.set_env.outputs.environment }}
       ready_tag_name: ${{ steps.set_env.outputs.ready_tag_name }}
       project_id: ${{ steps.set_env.outputs.project_id }}
+      project_name: ${{ steps.set_env.outputs.project_name }}
       service_account_key: ${{ steps.set_env.outputs.service_account_key }}
       tag_name: ${{ steps.set_tag.outputs.tag_name }}
+      revision_base: ${{ steps.set_env.outputs.revision_base }}
     steps:
       - uses: actions/checkout@v3
       - name: Set environment for branch and tag
         id: set_env
         run: |
-          echo "revision_base=staging" >> $GITHUB_ENV
+          echo "revision_base=teststaging" >> $GITHUB_OUTPUT
           echo "environment=stg" >> $GITHUB_OUTPUT
           echo "ready_tag_name=ready-stg" >> $GITHUB_OUTPUT
-          echo "project_id=${{ secrets.GCP_PROJECT_ID_STG }}" >> $GITHUB_OUTPUT
-          echo "service_account_key=${{ secrets.GCP_SA_KEY_STG }}" >> $GITHUB_OUTPUT
-          echo "slack_channel=C05M6J3MPL7" >> $GITHUB_OUTPUT　# log-vq-release-stg
-          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-              echo "revision_base=release" >> $GITHUB_ENV
+          echo "project_id=400301755221" >> $GITHUB_OUTPUT
+          echo "project_name=private-asami-minegishi-01" >> $GITHUB_OUTPUT
+          echo "slack_channel=C0185CQ1Q3S" >> $GITHUB_OUTPUT
+          if [[ $GITHUB_REF == *"/test_"* ]]; then
+            echo "tesssssssssssssssssssssstttttttt"
+          elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+              echo "revision_base=release" >> $GITHUB_OUTPUT
               echo "environment=prod" >> $GITHUB_OUTPUT
               echo "ready_tag_name=ready-prod" >> $GITHUB_OUTPUT
-              echo "project_id=${{ secrets.GCP_PROJECT_ID_PROD }}" >> $GITHUB_OUTPUT
-              echo "service_account_key=${{ secrets.GCP_SA_KEY_PROD }}" >> $GITHUB_OUTPUT
-              echo "slack_channel=C05NAR4D3NU" >> $GITHUB_OUTPUT　# log-vq-release-prod
+              echo "project_id=400301755221" >> $GITHUB_OUTPUT
+              echo "project_name=private-asami-minegishi-01" >> $GITHUB_OUTPUT
+              echo "slack_channel=C0185CQ1Q3S" >> $GITHUB_OUTPUT
           fi
                     
       - name: Get Tag List
@@ -50,26 +53,30 @@ jobs:
           echo "Available tags:"
           git tag -l
           
-          latest_tag=$(git tag -l --sort=version:refname "${{ env.revision_base }}-${{ env.APP_VERSION }}*" | tail -n 1)
+          latest_tag=$(git tag -l --sort=version:refname "${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}*" | tail -n 1)
           
-          release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
+          release_number=$(echo $latest_tag | sed "s/${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
           echo "release_number=${release_number}" >> $GITHUB_ENV
           
       - name: Create and Push New Tag
         id: set_tag
         run: |
-          tag_name="${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ env.release_number }}"
+          tag_name="${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}-${{ env.release_number }}"
           git tag $tag_name
           git push origin $tag_name
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
 
       - name: Notify to Slack
         run: |
-          # curl -X POST https://slack.com/api/chat.postMessage \
-          #   -H "Authorization: Bearer ${{ secrets.SLACK_OAUTH_ACCESS_TOKEN }}" \
-          #   -H "Content-type: application/json" \
-          #   -d "{\"channel\":\"${{ env.revision_base }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ env.project_id }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ env.tag_name }}\"}]}]}"
-          echo "{\"channel\":\"${{ env.revision_base }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ env.project_id }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ env.tag_name }}\"}]}]}"
+          echo ${{ steps.set_tag.outputs.tag_name }}
+          echo ${{ steps.set_env.outputs.project_id }}
+          echo ${{ steps.set_env.outputs.slack_channel }}
+          echo ${{ github.ref_name }}
+          curl -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer ${{ secrets.VISASQ_SLACK_OAUTH_ACCESS_TOKEN }}" \
+            -H "Content-type: application/json" \
+            -d "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"TEST switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
+          echo "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"TEST switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
 
  
   switch-traffic:
@@ -85,13 +92,11 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: 'google-github-actions/auth@v1'
         with:
-          workload_identity_provider: ${{ secrets.WAP }}
-          service_account: ${{ secrets.SA }}
+          workload_identity_provider: "projects/${{ needs.set-tag.outputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
+          service_account: "cloud-run-test@${{ needs.set-tag.outputs.project_name }}.iam.gserviceaccount.com"
           
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
-        with:
-          version: ${{ env.GCLOUD_SDK_VERSION }}
           
       - name: Test Cloud Run services
         run: |
@@ -112,13 +117,21 @@ jobs:
           done
       
       - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
-        if: ${{ success() }} && github.ref == 'refs/heads/main'
+        if: ${{ success() && github.ref == 'refs/heads/main' }}
         run: sleep 1s
         
       - name: Cleanup revision-tags
-        if: github.ref == 'refs/heads/main'
         run: |
+          values=${{ vars.PROTECTED_REVISION_TAGS }}
+          values=(${values//,/ })
           for service in ${{ env.services }}; do
+            protected_revision_tags=""
+            for value in "${values[@]}"; do
+              if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]]; then
+                protected_revision_tags+=",${value}=${service}-${value}"
+              fi
+            done
+            echo $protected_revision_tags
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags ${{ needs.set-tag.outputs.ready_tag_name }}=$revision,${{ needs.set-tag.outputs.tag_name }}=$revision
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags "${{ needs.set-tag.outputs.ready_tag_name }}=${revision},${{ needs.set-tag.outputs.tag_name }}=${revision}${protected_revision_tags}"
           done
