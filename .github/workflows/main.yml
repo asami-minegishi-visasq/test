@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - staging
+      - feature/test_mine
 
 env:
   SERVICE_NAME: test
@@ -13,6 +14,7 @@ env:
 
 jobs:
   set-tag:
+    if: ${{ ! contains(github.event.head_commit.message, '[no switch]') }}
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.set_env.outputs.environment }}
