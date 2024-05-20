@@ -122,7 +122,7 @@ jobs:
                   gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} >/dev/null 2>&1; then
                 protected_revision_tags+=",${value}=${service}-${value}"
                 image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(spec.container.image)")
-                gcloud artifacts docker tags add "${image_url}" "${{ needs.set-tag.outputs.project_name }}/protected-${service}-${value}" --location=${{ env.REGION }} --repository=${{ needs.set-tag.outputs.project_name }} --tag="${service}-${value}"
+                gcloud artifacts docker tags add ${image_url} "${image_url%@*}:protected-${service}-${value}"
                 fi
             done
             echo $protected_revision_tags
