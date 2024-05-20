@@ -68,23 +68,11 @@ jobs:
           git push origin $tag_name
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
 
-      - name: Notify to Slack
-        run: |
-          echo ${{ steps.set_tag.outputs.tag_name }}
-          echo ${{ steps.set_env.outputs.project_id }}
-          echo ${{ steps.set_env.outputs.slack_channel }}
-          echo ${{ github.ref_name }}
-          curl -X POST https://slack.com/api/chat.postMessage \
-            -H "Authorization: Bearer ${{ secrets.VISASQ_SLACK_OAUTH_ACCESS_TOKEN }}" \
-            -H "Content-type: application/json" \
-            -d "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"TEST switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
-          echo "{\"channel\":\"${{ steps.set_env.outputs.slack_channel }}\",\"unfurl_links\":false,\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"TEST switch-traffic: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Github Actions Page>\"}},{\"type\":\"section\",\"fields\":[{\"type\":\"mrkdwn\",\"text\":\"*GCP Project*\n${{ steps.set_env.outputs.project_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Revision*\n${{ steps.set_tag.outputs.tag_name }}\"},{\"type\":\"mrkdwn\",\"text\":\"*Branch*\n${{ github.ref_name }}\"}]}]}"
 
- 
   switch-traffic:
     needs: set-tag
     runs-on: ubuntu-latest
-    environment: 
+    environment:
       name: ${{ needs.set-tag.outputs.environment }}
     permissions:
       contents: 'read'
@@ -92,24 +80,25 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Authenticate with Google Cloud
-        uses: 'google-github-actions/auth@v1'
+        uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ needs.set-tag.outputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
-          service_account: "cloud-run-test@${{ needs.set-tag.outputs.project_name }}.iam.gserviceaccount.com"
-          
+          workload_identity_provider: "projects/${{ needs.set-tag.outputs.project_id }}/locations/global/workloadIdentityPools/cloudrun-identity-pool/providers/cloudrun-provider-id"
+          service_account: "cloudrun-sa@${{ needs.set-tag.outputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
-          
+
       - name: Test Cloud Run services
         run: |
           # Debug: Show all services list
           gcloud run services list --region=${{ env.REGION }} --format="value(name)"
-            
+
       - name: List Cloud Run services
         run: |
-          services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}*")
-          echo "services=${services}" >> $GITHUB_ENV
-          
+          services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}* AND NOT metadata.name:(${{ env.SERVICE_NAME }}-batch*)")
+          echo 'services<<EOF' >> $GITHUB_ENV
+          echo ${services} >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
       - name: Switch Traffic
         run: |
           for service in ${{ env.services }}; do
@@ -117,11 +106,11 @@ jobs:
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions $revision=100
             echo "Updated traffic for service $service to revision $revision"
           done
-      
+
       - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
-        if: ${{ success() && github.ref == 'refs/heads/main' }}
-        run: sleep 1s
-        
+        if: ${{ success() && github.ref == 'refs/heads/master' }}
+        run: sleep 180s
+
       - name: Cleanup revision-tags
         run: |
           values=${{ vars.PROTECTED_REVISION_TAGS }}
@@ -129,9 +118,12 @@ jobs:
           for service in ${{ env.services }}; do
             protected_revision_tags=""
             for value in "${values[@]}"; do
-              if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]]; then
+                if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]] && \
+                  gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} >/dev/null 2>&1; then
                 protected_revision_tags+=",${value}=${service}-${value}"
-              fi
+                image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(spec.container.image)")
+                gcloud artifacts docker images tag "${image_url}" "${{ needs.set-tag.outputs.project_name }}/protected-${service}-${value}"
+                fi
             done
             echo $protected_revision_tags
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
