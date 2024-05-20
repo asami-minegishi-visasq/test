@@ -29,7 +29,7 @@ jobs:
       - name: Set environment for branch and tag
         id: set_env
         run: |
-          echo "revision_base=teststaging" >> $GITHUB_OUTPUT
+          echo "revision_base=staging" >> $GITHUB_OUTPUT
           echo "environment=stg" >> $GITHUB_OUTPUT
           echo "ready_tag_name=ready-stg" >> $GITHUB_OUTPUT
           echo "project_id=400301755221" >> $GITHUB_OUTPUT
