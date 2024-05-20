@@ -121,7 +121,7 @@ jobs:
                 if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]] && \
                   gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} >/dev/null 2>&1; then
                 protected_revision_tags+=",${value}=${service}-${value}"
-                image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(spec.container.image)")
+                image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(image)")
                 tag_name="protected-${service}-${value}"
                 gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:${tag_name}"
                 fi
