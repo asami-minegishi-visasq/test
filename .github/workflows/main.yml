@@ -64,8 +64,8 @@ jobs:
         id: set_tag
         run: |
           tag_name="${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}-${{ env.release_number }}"
-          git tag $tag_name
-          git push origin $tag_name
+          # git tag $tag_name
+          # git push origin $tag_name
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
 
 
@@ -122,7 +122,7 @@ jobs:
                   gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} >/dev/null 2>&1; then
                 protected_revision_tags+=",${value}=${service}-${value}"
                 image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(spec.container.image)")
-                gcloud artifacts docker tags add ${image_url} "${image_url%@*}:protected-${service}-${value}"
+                gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:protected-${service}-${value}"
                 fi
             done
             echo $protected_revision_tags
