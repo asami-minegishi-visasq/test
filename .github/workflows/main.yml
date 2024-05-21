@@ -113,8 +113,6 @@ jobs:
 
       - name: Cleanup revision-tags
         run: |
-          values=${{ vars.PROTECTED_REVISION_TAGS }}
-          values=(${values//,/ })
           for service in ${{ env.services }}; do
             protected_revision_tags=""
             for value in "${values[@]}"; do
@@ -127,6 +125,13 @@ jobs:
                 fi
             done
             echo $protected_revision_tags
+            if [[ -z "$protected_revision_tags" ]]; then
+              image_path="${image_url%@*}"
+              protected_tags=$(gcloud artifacts docker tags list "${image_path}" --format="value(tags)" --filter="tags:protected-*")
+              for tag in ${protected_tags}; do
+                gcloud artifacts docker tags delete "${image_path}:${tag}"
+              done
+            fi
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags "${{ needs.set-tag.outputs.ready_tag_name }}=${revision},${{ needs.set-tag.outputs.tag_name }}=${revision}${protected_revision_tags}"
           done
