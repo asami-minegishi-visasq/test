@@ -129,7 +129,7 @@ jobs:
             if [[ -z "$protected_revision_tags" ]]; then
               image_url=$(gcloud run revisions describe "${revision}" --region=${{ env.REGION }} --format="value(image)")
               image_path="${image_url%@*}"
-              protected_tags=$(gcloud artifacts docker tags list "${image_path}" --format="value(tags)" --filter="tags:protected-*")
+              protected_tags=$(gcloud artifacts docker tags list "${image_path}" --format="value(tag)"  --filter="tag:${image_path}/tags/protected-*")
               for tag in ${protected_tags}; do
                 gcloud artifacts docker tags delete "${image_path}:${tag}"
               done
