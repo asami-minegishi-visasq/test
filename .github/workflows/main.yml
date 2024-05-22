@@ -119,10 +119,9 @@ jobs:
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
             protected_revision_tags=""
             for value in "${values[@]}"; do
-                if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]] && \
-                  gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} >/dev/null 2>&1; then
-                protected_revision_tags+=",${value}=${service}-${value}"
                 image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(image)")
+                if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]] && image_url; then
+                protected_revision_tags+=",${value}=${service}-${value}"
                 tag_name="protected-${service}-${value}"
                 gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:${tag_name}"
                 fi
@@ -130,10 +129,9 @@ jobs:
             echo $protected_revision_tags
             if [[ -z "$protected_revision_tags" ]]; then
               image_url=$(gcloud run revisions describe "${revision}" --region=${{ env.REGION }} --format="value(image)")
-              image_path="${image_url%@*}"
-              protected_tags=$(gcloud artifacts docker tags list "${image_path}" --format="value(tag)"  --filter="tag~/tags/protected-*")
+              protected_tags=$(gcloud artifacts docker tags list "${image_url%@*}" --format="value(tag)"  --filter="tag~/tags/protected-*")
               for tag in ${protected_tags}; do
-                gcloud artifacts docker tags delete "${image_path}:${tag}"
+                gcloud artifacts docker tags delete "${image_url%@*}:${tag}"
               done
             fi
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags "${{ needs.set-tag.outputs.ready_tag_name }}=${revision},${{ needs.set-tag.outputs.tag_name }}=${revision}${protected_revision_tags}"
