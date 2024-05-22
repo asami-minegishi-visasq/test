@@ -118,6 +118,7 @@ jobs:
           for service in ${{ env.services }}; do
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
             protected_revision_tags=""
+            # PROTECTED_REVISION_TAGSの中身があればリビジョンを保護する
             for value in "${values[@]}"; do
                 image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(image)" 2>/dev/null || echo "")
                 if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]] && [[ -n "$image_url" ]]; then
@@ -127,6 +128,7 @@ jobs:
                 fi
             done
             echo $protected_revision_tags
+            # 保護対象リビジョンが存在しない場合、全ての保護されているイメージから保護用のタグを削除する
             if [[ -z "$protected_revision_tags" ]]; then
               image_url=$(gcloud run revisions describe "${revision}" --region=${{ env.REGION }} --format="value(image)")
               protected_tags=$(gcloud artifacts docker tags list "${image_url%@*}" --format="value(tag)"  --filter="tag~/tags/protected-*")
@@ -134,5 +136,6 @@ jobs:
                 gcloud artifacts docker tags delete "${image_url%@*}:${tag}"
               done
             fi
+            # 必要なリビジョンタグのみsetしなおす
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags "${{ needs.set-tag.outputs.ready_tag_name }}=${revision},${{ needs.set-tag.outputs.tag_name }}=${revision}${protected_revision_tags}"
           done
