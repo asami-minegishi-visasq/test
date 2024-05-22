@@ -120,10 +120,10 @@ jobs:
             protected_revision_tags=""
             for value in "${values[@]}"; do
                 image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(image)")
-                if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]] && image_url; then
-                protected_revision_tags+=",${value}=${service}-${value}"
-                tag_name="protected-${service}-${value}"
-                gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:${tag_name}"
+                if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]] && [[ -n "$image_url" ]]; then
+                  protected_revision_tags+=",${value}=${service}-${value}"
+                  tag_name="protected-${service}-${value}"
+                  gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:${tag_name}"
                 fi
             done
             echo $protected_revision_tags
