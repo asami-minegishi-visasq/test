@@ -119,7 +119,7 @@ jobs:
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
             protected_revision_tags=""
             for value in "${values[@]}"; do
-                image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(image)")
+                image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(image)" 2>/dev/null || echo "")
                 if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]] && [[ -n "$image_url" ]]; then
                   protected_revision_tags+=",${value}=${service}-${value}"
                   tag_name="protected-${service}-${value}"
