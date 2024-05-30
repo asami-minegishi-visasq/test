@@ -70,6 +70,9 @@ jobs:
 
   wait:
     needs: set-tag
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     environment:
       name: approve
