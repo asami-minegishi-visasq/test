@@ -114,6 +114,9 @@ jobs:
     concurrency:
       group: ci-${{ needs.set-tag.outputs.environment }}
       cancel-in-progress: true
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
