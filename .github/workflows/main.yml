@@ -74,6 +74,9 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ needs.set-tag.outputs.environment }}
+    concurrency:
+      group: switch-traffic-${{ needs.set-tag.outputs.environment }}
+      cancel-in-progress: true
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -112,7 +115,7 @@ jobs:
     environment:
       name: wait-${{ needs.set-tag.outputs.environment }}
     concurrency:
-      group: ci-${{ needs.set-tag.outputs.environment }}
+      group: cleanup-${{ needs.set-tag.outputs.environment }}
       cancel-in-progress: true
     permissions:
       contents: 'read'
