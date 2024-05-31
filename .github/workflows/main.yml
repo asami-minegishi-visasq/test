@@ -68,23 +68,9 @@ jobs:
           # git push origin $tag_name
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
 
-  wait:
-    needs: set-tag
-    concurrency:
-      group: ci-${{ github.ref }}
-      cancel-in-progress: true
-    runs-on: ubuntu-latest
-    environment:
-      name: approve
-    steps:
-      - name: go to next step
-        run: echo 'switch-trafficステップを実行します'
-
-
   switch-traffic:
     needs: 
       - set-tag
-      - wait
     runs-on: ubuntu-latest
     environment:
       name: ${{ needs.set-tag.outputs.environment }}
@@ -121,10 +107,31 @@ jobs:
             echo "Updated traffic for service $service to revision $revision"
           done
 
-      - name: Sleep # 古いリビジョン向けに走っている処理が完了するのを待つ（時間は適当なので何かあれば適宜調整のこと）
-        if: ${{ success() && github.ref == 'refs/heads/master' }}
-        run: sleep 180s
+  wait:
+    # if: ${{ success() && github.ref == 'refs/heads/master' }}
+    needs: 
+      - set-tag
+      - switch-traffic
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    environment:
+      name: approve-${{ github.ref }}
+    steps:
+      - name: go to next step
+        run: echo 'switch-trafficステップを実行します'
 
+  cleanup-revision-tags:
+    # if: ${{ ! failure() && !cancelled() }}
+    needs: 
+      - set-tag
+      - wait
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
       - name: Cleanup revision-tags
         run: |
           values=($(echo "${{ vars.PROTECTED_REVISION_TAGS }}" | tr ',' ' '))
@@ -135,15 +142,17 @@ jobs:
             for value in "${values[@]}"; do
                 image_url=$(gcloud run revisions describe "${service}-${value}" --region=${{ env.REGION }} --format="value(image)" 2>/dev/null || echo "")
                 if [[ $value == ${{ needs.set-tag.outputs.revision_base }}* ]] && [[ -n "$image_url" ]]; then
+                  image_url=$(echo $image_url | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
                   protected_revision_tags+=",${value}=${service}-${value}"
-                  tag_name="protected-${service}-${value}"
+                  tag_name="protected-${value}"
                   gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:${tag_name}"
                 fi
             done
             echo $protected_revision_tags
             # 保護対象リビジョンが存在しない場合、全ての保護されているイメージから保護用のタグを削除する
+            # 保護対象リビジョンが１つでも存在する場合はこの処理は行わない（費用対効果が薄いため）
             if [[ -z "$protected_revision_tags" ]]; then
-              image_url=$(gcloud run revisions describe "${revision}" --region=${{ env.REGION }} --format="value(image)")
+              image_url=$(gcloud run revisions describe "${revision}" --region=${{ env.REGION }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
               protected_tags=$(gcloud artifacts docker tags list "${image_url%@*}" --format="value(tag)"  --filter="tag~/tags/protected-*")
               for tag in ${protected_tags}; do
                 gcloud artifacts docker tags delete "${image_url%@*}:${tag}"
