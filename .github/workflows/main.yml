@@ -74,7 +74,8 @@ jobs:
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
 
   switch-traffic:
-    if: ${{　github.event_name == 'push' || inputs.is_switch_traffic == true }}
+    if: ${{ inputs.is_switch_traffic != false }}
+    # if: ${{　github.event_name == 'push' || inputs.is_switch_traffic == true }}
     needs: 
       - set-tag
     runs-on: ubuntu-latest
