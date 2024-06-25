@@ -1,6 +1,11 @@
 name: Deployment
 on:
   workflow_dispatch: 
+    inputs:
+        is_switch_traffic:
+          type: boolean 
+          required: false 
+          description: 'switch traffic flag'
   push:
     branches:
       - main
@@ -69,6 +74,7 @@ jobs:
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
 
   switch-traffic:
+    if: ${{　github.event_name == 'push' || inputs.is_switch_traffic == true }}
     needs: 
       - set-tag
     runs-on: ubuntu-latest
