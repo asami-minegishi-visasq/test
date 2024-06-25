@@ -83,7 +83,6 @@ jobs:
     outputs:
       services: ${{ steps.services_list.outputs.services }}
     steps:
-      - uses: actions/checkout@v4
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -122,7 +121,6 @@ jobs:
       id-token: 'write'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
