@@ -74,7 +74,7 @@ jobs:
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
           slack_message="動作確認できたらswitch-trafficしてください"
           if [[ ${{ github.event_name }} == 'push' ]] && [[ ${{ inputs.is_switch_traffic }} == true ]]; then
-            slack_message="動作確認できたらswitch-trafficしてください"
+            slack_message="switch-trafficなし"
           fi
           echo $slack_message
 
