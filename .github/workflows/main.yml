@@ -73,7 +73,7 @@ jobs:
           git push origin $tag_name
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
           slack_message="動作確認できたらswitch-trafficしてください"
-          if [[ ${{ github.event_name }} == 'push' ]] && [[ ${{ inputs.is_switch_traffic }} == true ]]; then
+          if [[ '${{ github.event_name }}' == 'push' ]] && ${{ inputs.is_switch_traffic }} ; then
             slack_message="switch-trafficなし"
           fi
           echo $slack_message
