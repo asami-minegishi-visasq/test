@@ -1,21 +1,21 @@
-name: Deployment
+name: set-tag-and-switch-traffic
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
     inputs:
         is_switch_traffic:
-          type: boolean 
-          required: false 
+          type: boolean
+          required: false
           description: 'switch traffic flag'
   push:
     branches:
       - main
       - staging
-      - feature/test_mine
 
 env:
   SERVICE_NAME: test
   APP_VERSION: v1
   REGION: us-central1
+
 
 jobs:
   set-tag:
@@ -26,11 +26,13 @@ jobs:
       ready_tag_name: ${{ steps.set_env.outputs.ready_tag_name }}
       project_id: ${{ steps.set_env.outputs.project_id }}
       project_name: ${{ steps.set_env.outputs.project_name }}
-      service_account_key: ${{ steps.set_env.outputs.service_account_key }}
-      tag_name: ${{ steps.set_tag.outputs.tag_name }}
       revision_base: ${{ steps.set_env.outputs.revision_base }}
+      tag_name: ${{ steps.set_tag.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Set environment for branch and tag
         id: set_env
         run: |
@@ -50,18 +52,11 @@ jobs:
               echo "project_name=private-asami-minegishi-01" >> $GITHUB_OUTPUT
               echo "slack_channel=C0185CQ1Q3S" >> $GITHUB_OUTPUT
           fi
-                    
+
       - name: Get Tag List
         id: get_tag
         run: |
-          git fetch --prune --unshallow
-          
-          # Debug: Show available tags
-          echo "Available tags:"
-          git tag -l
-          
           latest_tag=$(git tag -l --sort=version:refname "${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}*" | tail -n 1)
-          
           release_number=$(echo $latest_tag | sed "s/${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
           echo "release_number=${release_number}" >> $GITHUB_ENV
           
@@ -79,8 +74,8 @@ jobs:
           echo $slack_message
 
   switch-traffic:
-    if: ${{　github.event_name == 'push' || inputs.is_switch_traffic == true }}
-    needs: 
+    if: ${{ github.event_name == 'push' || inputs.is_switch_traffic == true }}
+    needs:
       - set-tag
     runs-on: ubuntu-latest
     environment:
@@ -94,9 +89,8 @@ jobs:
     outputs:
       services: ${{ steps.services_list.outputs.services }}
     steps:
-      # - uses: actions/checkout@v4
       - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: "projects/${{ needs.set-tag.outputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
           service_account: "cloud-run-test@${{ needs.set-tag.outputs.project_name }}.iam.gserviceaccount.com"
@@ -120,7 +114,7 @@ jobs:
           done
 
   cleanup-revision-tags:
-    needs: 
+    needs:
       - set-tag
       - switch-traffic
     environment:
@@ -133,7 +127,6 @@ jobs:
       id-token: 'write'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
