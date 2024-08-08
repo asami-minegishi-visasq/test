@@ -8,7 +8,7 @@ on:
           description: 'switch traffic flag'
   push:
     branches:
-      - master
+      - main
       - staging
 
 env:
