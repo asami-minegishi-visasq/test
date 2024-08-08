@@ -67,6 +67,11 @@ jobs:
           git tag $tag_name
           git push origin $tag_name
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
+          slack_message="動作確認できたらswitch-trafficしてください"
+          if [[ '${{ github.event.inputs.is_switch_traffic }}' == 'false' ]] ; then
+            slack_message="switch-trafficなし"
+          fi
+          echo $slack_message
 
   switch-traffic:
     if: ${{ github.event_name == 'push' || inputs.is_switch_traffic == true }}
@@ -125,8 +130,8 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ needs.set-tag.outputs.project_id }}/locations/global/workloadIdentityPools/cloudrun-identity-pool/providers/cloudrun-provider-id"
-          service_account: "cloudrun-sa@${{ needs.set-tag.outputs.project_name }}.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ needs.set-tag.outputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
+          service_account: "cloud-run-test@${{ needs.set-tag.outputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
