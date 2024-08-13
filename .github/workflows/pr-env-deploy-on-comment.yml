@@ -69,7 +69,6 @@ jobs:
             # リビジョンのイメージに保護用のタグを付与する
             image_url=$(gcloud run revisions describe "${revision}" --region=${{ env.REGION }} --format="value(image)")
             image_url=$(echo $image_url | sed 's|gcr.io/${{ env.project_name }}|us-docker.pkg.dev/${{ env.project_name }}/gcr.io|g')
-            echo $image_url
             tag_name="protected-${{ github.event.issue.number }}-${{ needs.set-tag.outputs.release_number }}"
             gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:${tag_name}"
           done
@@ -94,8 +93,7 @@ jobs:
             # PRベースのリビジョンタグを削除する
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags "pr-${{ github.event.pull_request.number }}"
             # PRベースのイメージ保護用タグを削除する
-            image_url=$(gcloud run revisions describe "${revision}" --region=${{ env.REGION }} --format="value(image)")
-            # image_url=$(gcloud run services describe "${service}" --region=${{ env.REGION }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
+            image_url=$(gcloud run services describe "${service}" --region=${{ env.REGION }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
             protected_tags=$(gcloud artifacts docker tags list "${image_url%@*}" --format="value(tag)"  --filter="tag~/tags/protected-${{ github.event.pull_request.number }}-*")
             for tag in ${protected_tags}; do
               gcloud artifacts docker tags delete "${image_url%@*}:${tag}"
