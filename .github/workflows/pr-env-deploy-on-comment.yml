@@ -61,7 +61,7 @@ jobs:
       - name: Set Revision tag and Image protected tag
         run: |
           services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}*")
-          for service in services; do
+          for service in $services; do
             echo $service
             # デプロイしたリビジョンにPRベースのタグを付与する
             revision="${service}-${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ needs.set-tag.outputs.release_number }}"
@@ -89,7 +89,7 @@ jobs:
       - name: Remove Revision tag and Image protected tag
         run: |
           services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}*")
-          for service in services; do
+          for service in $services; do
             # PRベースのリビジョンタグを削除する
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags "pr-${{ github.event.pull_request.number }}"
             # PRベースのイメージ保護用タグを削除する
