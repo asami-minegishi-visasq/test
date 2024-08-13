@@ -74,9 +74,12 @@ jobs:
           done
 
   # PRがクローズされた時に専用環境があれば削除する
-  build_only_when_pr_not_merged:
+  delete_protected_tags_when_pr_closed:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
