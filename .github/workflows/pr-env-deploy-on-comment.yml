@@ -34,12 +34,12 @@ jobs:
           release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0}')
           echo "release_number=${release_number}" >> $GITHUB_OUTPUT
           
-      - name: Create and Push New Tag
-        id: set_tag
-        run: |
-          tag_name="${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ steps.get_tag.outputs.release_number }}"
-          git tag $tag_name
-          git push origin $tag_name
+      # - name: Create and Push New Tag
+      #   id: set_tag
+      #   run: |
+      #     tag_name="${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ steps.get_tag.outputs.release_number }}"
+      #     git tag $tag_name
+      #     git push origin $tag_name
 
   set-revision-tag:
     needs:
