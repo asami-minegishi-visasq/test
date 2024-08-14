@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_number: ${{ steps.get_tag.outputs.release_number }}
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/pr_deploy')
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/pr_env_deploy')
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,7 +30,8 @@ jobs:
         id: get_tag
         run: |
           latest_tag=$(git tag -l --sort=version:refname "${{ env.revision_base }}-${{ env.APP_VERSION }}*" | tail -n 1)
-          release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
+          # release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
+          release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0}')
           echo "release_number=${release_number}" >> $GITHUB_OUTPUT
           
       - name: Create and Push New Tag
@@ -66,15 +67,16 @@ jobs:
             revision="${service}-${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ needs.set-tag.outputs.release_number }}"
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --update-tags "pr-${{ github.event.issue.number }}=${revision}"
             # リビジョンのイメージに保護用のタグを付与する
-            image_url=$(gcloud run revisions describe "${revision}" --region=${{ env.REGION }} --format="value(image)" 2>/dev/null)
-            image_url=$(echo $image_url | sed 's|gcr.io/${{ env.project_name }}|us-docker.pkg.dev/${{ env.project_name }}/gcr.io|g')
+            image_url=$(gcloud run services describe "${service}" --region=${{ env.REGION }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
             tag_name="protected-${{ github.event.issue.number }}-${{ needs.set-tag.outputs.release_number }}"
             gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:${tag_name}"
           done
 
   # PRがクローズされた時に専用環境があれば削除する
   delete_protected_tags_when_pr_closed:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: |
+      github.event_name == 'pull_request' && github.event.action == 'closed' ||
+      github.event.issue.pull_request && contains(github.event.comment.body, '/pr_env_delete')
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -93,10 +95,10 @@ jobs:
           services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}*")
           for service in services; do
             # PRベースのリビジョンタグを削除する
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags "pr-${{ github.event.pull_request.number }}"
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags "pr-${{ github.event.pull_request.number || github.event.issue.number }}"
             # PRベースのイメージ保護用タグを削除する
             image_url=$(gcloud run services describe "${service}" --region=${{ env.REGION }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
-            protected_tags=$(gcloud artifacts docker tags list "${image_url%@*}" --format="value(tag)"  --filter="tag~/tags/protected-${{ github.event.pull_request.number }}-*")
+            protected_tags=$(gcloud artifacts docker tags list "${image_url%@*}" --format="value(tag)"  --filter="tag~/tags/protected-${{ github.event.pull_request.number || github.event.issue.number }}-*")
             for tag in ${protected_tags}; do
               gcloud artifacts docker tags delete "${image_url%@*}:${tag}"
             done
