@@ -66,16 +66,6 @@ jobs:
             echo $service
             revisions=$(gcloud run services describe --region=us-central1 test-hello --format="json(spec.traffic)")
             echo $revisions
-            TAGS=$(echo "$revisions" | jq '
-              .spec.traffic
-              | group_by(.revisionName)
-              | map(select(
-                  all(.percent == null) and all(.tag | startswith("protected") | not)
-                ))
-              | map(.[0].tag)
-            ')
-            echo "Filtered Tags:"
-            echo "$TAGS"
             # デプロイしたリビジョンにPRベースのタグを付与する
             revision="${service}-${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ needs.set-tag.outputs.release_number }}"
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --update-tags "pr-${{ github.event.issue.number }}=${revision}"
