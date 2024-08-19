@@ -64,7 +64,7 @@ jobs:
           services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}*")
           for service in $services; do
             echo $service
-            revisions=$(gcloud run services describe --region=us-central1 test-hello --format="value(spec.traffic)")
+            revisions=$(gcloud run services describe --region=us-central1 test-hello --format="json(spec.traffic)")
             echo $revisions
             echo "$revisions" | jq '.data | map(select(.percent != null or (.tag | startswith("protected"))))'
             # デプロイしたリビジョンにPRベースのタグを付与する
