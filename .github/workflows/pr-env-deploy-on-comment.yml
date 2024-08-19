@@ -66,9 +66,7 @@ jobs:
             echo $service
             revisions=$(gcloud run services describe --region=us-central1 test-hello --format="value(spec.traffic)")
             echo $revisions
-            for revision in $revisions; do
-              echo $revision
-            done
+            echo "$revisions" | jq '.data | map(select(.percent != null or (.tag | startswith("protected"))))'
             # デプロイしたリビジョンにPRベースのタグを付与する
             revision="${service}-${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ needs.set-tag.outputs.release_number }}"
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --update-tags "pr-${{ github.event.issue.number }}=${revision}"
