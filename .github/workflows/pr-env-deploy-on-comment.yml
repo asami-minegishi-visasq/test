@@ -67,9 +67,7 @@ jobs:
             revisions=$(gcloud run services describe --region=us-central1 test-hello --format="value(spec.traffic)")
             echo $revisions
             for revision in $revisions; do
-              for value in $revision; do
-                echo $value
-              done
+              echo $revision
             done
             # デプロイしたリビジョンにPRベースのタグを付与する
             revision="${service}-${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ needs.set-tag.outputs.release_number }}"
