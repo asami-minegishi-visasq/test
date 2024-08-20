@@ -139,11 +139,13 @@ jobs:
       - name: Cleanup revision-tags
         run: |
           for service in ${{ needs.switch-traffic.outputs.services }}; do
-            delete_tags=$(echo "$revisions" | jq '
+            traffic=$(gcloud run services describe "$service" --region=${{ env.REGION }} --format="json(spec.traffic)")
+            echo $revisions
+            delete_tags=$(echo "$traffic" | jq '
               .spec.traffic
               | group_by(.revisionName)
               | map(select(
-                  all(.percent == null) and all(.tag | startswith("protected") | not)
+                  all(.percent == null) and all(.tag | startswith("pullrequest") | not)
                 ))
               | map(.[0].tag)
             ')
