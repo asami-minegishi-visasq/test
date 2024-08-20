@@ -140,17 +140,18 @@ jobs:
         run: |
           for service in ${{ needs.switch-traffic.outputs.services }}; do
             traffic=$(gcloud run services describe "$service" --region=${{ env.REGION }} --format="json(spec.traffic)")
-            echo $revisions
-            delete_tags=$(echo "$traffic" | jq '
+            echo $traffic
+            delete_tags=$(echo "$traffic" | jq -r '
               .spec.traffic
               | group_by(.revisionName)
               | map(select(
                   all(.percent == null) and all(.tag | startswith("pullrequest") | not)
                 ))
               | map(.[0].tag)
+              | join(",")
             ')
             echo "$delete_tags"
             # いらないリビジョンタグを消す
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags=$(echo "$delete_tags" | jq -c '.')
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags="$delete_tags"
             # gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags "${{ needs.set-tag.outputs.ready_tag_name }}=${revision},${{ needs.set-tag.outputs.tag_name }}=${revision}${protected_revision_tags}"
           done
