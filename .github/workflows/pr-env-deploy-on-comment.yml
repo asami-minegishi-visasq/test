@@ -64,8 +64,6 @@ jobs:
           services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}*")
           for service in $services; do
             echo $service
-            revisions=$(gcloud run services describe --region=us-central1 test-hello --format="json(spec.traffic)")
-            echo $revisions
             # デプロイしたリビジョンにPRベースのタグを付与する
             revision="${service}-${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ needs.set-tag.outputs.release_number }}"
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --update-tags "pr-${{ github.event.issue.number }}=${revision}"
