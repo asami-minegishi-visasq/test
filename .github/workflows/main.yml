@@ -151,6 +151,6 @@ jobs:
             ')
             echo "$delete_tags"
             # いらないリビジョンタグを消す
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags=$delete_tags
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags=$(echo "$delete_tags" | jq -c '.')
             # gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags "${{ needs.set-tag.outputs.ready_tag_name }}=${revision},${{ needs.set-tag.outputs.tag_name }}=${revision}${protected_revision_tags}"
           done
