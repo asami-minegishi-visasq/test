@@ -42,8 +42,14 @@ jobs:
           echo 'github.event_name: ' ${{ github.event_name }}
           echo 'github.ref_name: ' ${{ github.ref_name }}
           echo 'github.base_ref: ' ${{ github.base_ref }}
-          echo 'inputs.TEST1: ' ${{ inputs.TEST1 }}
-          echo 'inputs.TEST2: ' ${{ inputs.TEST2 }}
+          echo 'inputs.is_switch_traffic: ' ${{ inputs.is_switch_traffic }}
+          echo 'inputs.app-version: ' ${{ inputs.app-version }}
+          echo 'inputs.region: ' ${{ inputs.region }}
+          echo 'inputs.environment: ' ${{ inputs.environment }}
+          echo 'inputs.project_id: ' ${{ inputs.project_id }}
+          echo 'inputs.project_name: ' ${{ inputs.project_name }}
+          echo 'inputs.revision_base: ' ${{ inputs.revision_base }}
+          echo 'inputs.slack_channel: ' ${{ inputs.slack_channel }}
           cat $GITHUB_EVENT_PATH
 
       - uses: actions/checkout@v4
@@ -140,7 +146,7 @@ jobs:
               .spec.traffic
               | group_by(.revisionName)
               | map(select(
-                  all(.percent == null) and all(.tag | startswith("pullrequest") | not)
+                  all(.percent == null) and all(.tag | startswith("pullrequest") and all(.tag | startswith("ready") | not)
                 ))
               | map(.[0].tag)
               | join(",")
