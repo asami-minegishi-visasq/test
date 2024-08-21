@@ -1,75 +1,71 @@
 name: set-tag-and-switch-traffic
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-        is_switch_traffic:
-          type: boolean
-          required: false
-          description: 'switch traffic flag'
-  push:
-    branches:
-      - main
-      - staging
-
-env:
-  SERVICE_NAME: test
-  APP_VERSION: v1
-  REGION: us-central1
-
+      is_switch_traffic: 
+        type: string
+        required: false
+      service_name: 
+        type: string
+        required: true
+      app-version: 
+        type: string
+        required: true
+      region: 
+        type: string
+        required: true
+      environment: 
+        type: string
+        required: true
+      project_id: 
+        type: string
+        required: true
+      project_name: 
+        type: string
+        required: true
+      revision_base: 
+        type: string
+        required: true
+      slack_channel: 
+        type: string
+        required: true
 
 jobs:
   set-tag:
     if: ${{ ! contains(github.event.head_commit.message, '[no switch]') }}
     runs-on: ubuntu-latest
     outputs:
-      environment: ${{ steps.set_env.outputs.environment }}
-      ready_tag_name: ${{ steps.set_env.outputs.ready_tag_name }}
-      project_id: ${{ steps.set_env.outputs.project_id }}
-      project_name: ${{ steps.set_env.outputs.project_name }}
-      revision_base: ${{ steps.set_env.outputs.revision_base }}
       tag_name: ${{ steps.set_tag.outputs.tag_name }}
     steps:
+      - name: debug
+        run: |
+          echo 'github.event_name: ' ${{ github.event_name }}
+          echo 'github.ref_name: ' ${{ github.ref_name }}
+          echo 'github.base_ref: ' ${{ github.base_ref }}
+          echo 'inputs.TEST1: ' ${{ inputs.TEST1 }}
+          echo 'inputs.TEST2: ' ${{ inputs.TEST2 }}
+          cat $GITHUB_EVENT_PATH
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set environment for branch and tag
-        id: set_env
-        run: |
-          echo "revision_base=staging" >> $GITHUB_OUTPUT
-          echo "environment=stg" >> $GITHUB_OUTPUT
-          echo "ready_tag_name=ready-stg" >> $GITHUB_OUTPUT
-          echo "project_id=400301755221" >> $GITHUB_OUTPUT
-          echo "project_name=private-asami-minegishi-01" >> $GITHUB_OUTPUT
-          echo "slack_channel=C0185CQ1Q3S" >> $GITHUB_OUTPUT
-          if [[ $GITHUB_REF == *"/test_"* ]]; then
-            echo "tesssssssssssssssssssssstttttttt"
-          elif [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-              echo "revision_base=release" >> $GITHUB_OUTPUT
-              echo "environment=prod" >> $GITHUB_OUTPUT
-              echo "ready_tag_name=ready-prod" >> $GITHUB_OUTPUT
-              echo "project_id=400301755221" >> $GITHUB_OUTPUT
-              echo "project_name=private-asami-minegishi-01" >> $GITHUB_OUTPUT
-              echo "slack_channel=C0185CQ1Q3S" >> $GITHUB_OUTPUT
-          fi
-
       - name: Get Tag List
         id: get_tag
         run: |
-          latest_tag=$(git tag -l --sort=version:refname "${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}*" | tail -n 1)
-          # release_number=$(echo $latest_tag | sed "s/${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
-          release_number=$(echo $latest_tag | sed "s/${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0}')
+          latest_tag=$(git tag -l --sort=version:refname "${{ inputs.revision_base }}-${{ inputs.app_version }}*" | tail -n 1)
+          release_number=$(echo $latest_tag | sed "s/${{ inputs.revision_base }}-${{ inputs.app_version }}-//" | awk '{print $0+1}')
           echo "release_number=${release_number}" >> $GITHUB_ENV
           
       - name: Create and Push New Tag
         id: set_tag
         run: |
-          tag_name="${{ steps.set_env.outputs.revision_base }}-${{ env.APP_VERSION }}-${{ env.release_number }}"
-          # git tag $tag_name
-          # git push origin $tag_name
+          tag_name="${{ inputs.revision_base }}-${{ inputs.app_version }}-${{ env.release_number }}"
+          git tag $tag_name
+          git push origin $tag_name
           echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
           slack_message="動作確認できたらswitch-trafficしてください"
-          if [[ '${{ github.event.inputs.is_switch_traffic }}' == 'false' ]] ; then
+          if [[ '${{ inputs.is_switch_traffic }}' == 'false' ]] ; then
             slack_message="switch-trafficなし"
           fi
           echo $slack_message
@@ -80,9 +76,9 @@ jobs:
       - set-tag
     runs-on: ubuntu-latest
     environment:
-      name: ${{ needs.set-tag.outputs.environment }}
+      name: ${{ inputs.environment }}
     concurrency:
-      group: switch-traffic-${{ needs.set-tag.outputs.environment }}
+      group: switch-traffic-${{ inputs.environment }}
       cancel-in-progress: true
     permissions:
       contents: 'read'
@@ -93,15 +89,15 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ needs.set-tag.outputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
-          service_account: "cloud-run-test@${{ needs.set-tag.outputs.project_name }}.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ inputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
+          service_account: "cloud-run-test@${{ inputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: List Cloud Run services
         id: services_list
         run: |
-          services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}*")
+          services=$(gcloud run services list --region=${{ inputs.region }} --format="value(name)" --filter="metadata.name:${{ inputs.service_name }}*")
           echo 'services<<EOF' >> $GITHUB_OUTPUT
           echo ${services} >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
@@ -110,18 +106,17 @@ jobs:
         run: |
           for service in ${{ steps.services_list.outputs.services }}; do
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions $revision=100
+            gcloud run services update-traffic "$service" --region=${{ inputs.region }} --to-revisions $revision=100
             echo "Updated traffic for service $service to revision $revision"
           done
 
   cleanup-revision-tags:
     needs:
-      - set-tag
       - switch-traffic
     environment:
-      name: wait-${{ needs.set-tag.outputs.environment }}
+      name: wait-${{ inputs.environment }}
     concurrency:
-      group: cleanup-${{ needs.set-tag.outputs.environment }}
+      group: cleanup-${{ inputs.environment }}
       cancel-in-progress: true
     permissions:
       contents: 'read'
@@ -131,15 +126,15 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ needs.set-tag.outputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
-          service_account: "cloud-run-test@${{ needs.set-tag.outputs.project_name }}.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ inputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
+          service_account: "cloud-run-test@${{ inputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: Cleanup revision-tags
         run: |
           for service in ${{ needs.switch-traffic.outputs.services }}; do
-            traffic=$(gcloud run services describe "$service" --region=${{ env.REGION }} --format="json(spec.traffic)")
+            traffic=$(gcloud run services describe "$service" --region=${{ inputs.region }} --format="json(spec.traffic)")
             echo $traffic
             delete_tags=$(echo "$traffic" | jq -r '
               .spec.traffic
@@ -152,6 +147,6 @@ jobs:
             ')
             echo "$delete_tags"
             # いらないリビジョンタグを消す
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags="$delete_tags"
+            gcloud run services update-traffic "$service" --region=${{ inputs.region }} --remove-tags="$delete_tags"
             # gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags "${{ needs.set-tag.outputs.ready_tag_name }}=${revision},${{ needs.set-tag.outputs.tag_name }}=${revision}${protected_revision_tags}"
           done
