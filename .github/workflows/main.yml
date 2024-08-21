@@ -2,9 +2,6 @@ name: set-tag-and-switch-traffic
 on:
   workflow_call:
     inputs:
-      is_switch_traffic: 
-        type: string
-        required: false
       service_name: 
         type: string
         required: true
