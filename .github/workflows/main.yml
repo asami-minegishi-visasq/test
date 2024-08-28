@@ -94,7 +94,7 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          # token_format: 'access_token' 
+          token_format: 'access_token' 
           workload_identity_provider: "projects/${{ inputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
           service_account: "cloud-run-test@${{ inputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
