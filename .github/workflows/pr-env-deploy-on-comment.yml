@@ -4,14 +4,29 @@ on:
     types: [created]
   pull_request:
     types: [closed]
-
-env:
-  SERVICE_NAME: test
-  APP_VERSION: v1
-  REGION: us-central1
-  revision_base: staging
-  project_id: 400301755221
-  project_name: private-asami-minegishi-01
+  workflow_call:
+    inputs:
+      service_name: 
+        type: string
+        required: true
+      app_version: 
+        type: string
+        required: true
+      region: 
+        type: string
+        required: true
+      environment: 
+        type: string
+        required: true
+      project_id: 
+        type: string
+        required: true
+      project_name: 
+        type: string
+        required: true
+      revision_base: 
+        type: string
+        required: true
 
 jobs:
   # PRコメント時にfeatureブランチをステージング環境にデプロイする
@@ -29,14 +44,14 @@ jobs:
       - name: Get Tag List
         id: get_tag
         run: |
-          latest_tag=$(git tag -l --sort=version:refname "${{ env.revision_base }}-${{ env.APP_VERSION }}*" | tail -n 1)
-          release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ env.APP_VERSION }}-//" | awk '{print $0+1}')
+          latest_tag=$(git tag -l --sort=version:refname "${{ inputs.revision_base }}-${{ inputs.app_version }}*" | tail -n 1)
+          release_number=$(echo $latest_tag | sed "s/${{ inputs.revision_base }}-${{ inputs.app_version }}-//" | awk '{print $0+1}')
           echo "release_number=${release_number}" >> $GITHUB_OUTPUT
           
       - name: Create and Push New Tag
         id: set_tag
         run: |
-          tag_name="${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ steps.get_tag.outputs.release_number }}"
+          tag_name="${{ inputs.revision_base }}-${{ inputs.app_version }}-${{ steps.get_tag.outputs.release_number }}"
           git tag $tag_name
           git push origin $tag_name
 
@@ -53,21 +68,21 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ env.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
-          service_account: "cloud-run-test@${{ env.project_name }}.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ inputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
+          service_account: "cloud-run-test@${{ inputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: Set Revision tag and Image protected tag
         run: |
-          services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}*")
+          services=$(gcloud run services list --region=${{ inputs.region }} --format="value(name)" --filter="metadata.name:${{ inputs.service_name }}*")
           for service in $services; do
             echo $service
             # デプロイしたリビジョンにPRベースのタグを付与する
-            revision="${service}-${{ env.revision_base }}-${{ env.APP_VERSION }}-${{ needs.set-tag.outputs.release_number }}"
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --update-tags "pr-${{ github.event.issue.number }}=${revision}"
+            revision="${service}-${{ inputs.revision_base }}-${{ inputs.app_version }}-${{ needs.set-tag.outputs.release_number }}"
+            gcloud run services update-traffic "$service" --region=${{ inputs.region }} --update-tags "pr-${{ github.event.issue.number }}=${revision}"
             # リビジョンのイメージに保護用のタグを付与する
-            image_url=$(gcloud run services describe "${service}" --region=${{ env.REGION }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
+            image_url=$(gcloud run services describe "${service}" --region=${{ inputs.region }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
             tag_name="protected-${{ github.event.issue.number }}-${{ needs.set-tag.outputs.release_number }}"
             gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:${tag_name}"
           done
@@ -85,19 +100,19 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ env.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
-          service_account: "cloud-run-test@${{ env.project_name }}.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ inputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
+          service_account: "cloud-run-test@${{ inputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
       - name: Remove Revision tag and Image protected tag
         run: |
-          services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ env.SERVICE_NAME }}*")
+          services=$(gcloud run services list --region=${{ inputs.region }} --format="value(name)" --filter="metadata.name:${{ inputs.service_name }}*")
           for service in $services; do
             # PRベースのリビジョンタグを削除する
-            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags "pr-${{ github.event.pull_request.number || github.event.issue.number }}"
+            gcloud run services update-traffic "$service" --region=${{ inputs.region }} --remove-tags "pr-${{ github.event.pull_request.number || github.event.issue.number }}"
             # PRベースのイメージ保護用タグを削除する
-            image_url=$(gcloud run services describe "${service}" --region=${{ env.REGION }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
+            image_url=$(gcloud run services describe "${service}" --region=${{ inputs.region }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
             protected_tags=$(gcloud artifacts docker tags list "${image_url%@*}" --format="value(tag)"  --filter="tag~/tags/protected-${{ github.event.pull_request.number || github.event.issue.number }}-*")
             for tag in ${protected_tags}; do
               gcloud artifacts docker tags delete "${image_url%@*}:${tag}"
