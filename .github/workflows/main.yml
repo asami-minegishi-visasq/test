@@ -146,7 +146,7 @@ jobs:
               .spec.traffic
               | group_by(.revisionName)
               | map(select(
-                  all(.percent == null) and all(.tag | startswith("pullrequest") and all(.tag | startswith("ready") | not)
+                  all(.percent == null) and all((.tag | startswith("pullrequest")) and (.tag | startswith("ready") | not))
                 ))
               | map(.[0].tag)
               | join(",")
