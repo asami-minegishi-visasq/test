@@ -5,7 +5,7 @@ on:
       service_name: 
         type: string
         required: true
-      app-version: 
+      app_version: 
         type: string
         required: true
       region: 
