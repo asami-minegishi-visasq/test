@@ -23,6 +23,9 @@ on:
       revision_base: 
         type: string
         required: true
+      slack_channel: 
+        type: string
+        required: true
 
 jobs:
   # PRコメント時にfeatureブランチをステージング環境にデプロイする
