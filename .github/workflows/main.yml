@@ -106,7 +106,7 @@ jobs:
       - name: List Cloud Run services
         id: services_list
         run: |
-          services=$(gcloud run services list --region=${{ env.region }} --format="value(name)" --filter="metadata.name:${{ inputs.service_name }}*")
+          services=$(gcloud run services list --region=${{ env.REGION }} --format="value(name)" --filter="metadata.name:${{ inputs.service_name }}*")
           echo 'services<<EOF' >> $GITHUB_OUTPUT
           echo ${services} >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
@@ -115,7 +115,7 @@ jobs:
         run: |
           for service in ${{ steps.services_list.outputs.services }}; do
             revision="${service}-${{ needs.set-tag.outputs.tag_name }}"
-            gcloud run services update-traffic "$service" --region=${{ env.region }} --to-revisions $revision=100
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --to-revisions $revision=100
             echo "Updated traffic for service $service to revision $revision"
           done
 
@@ -160,7 +160,7 @@ jobs:
             # ・トラフィックが割り当てられている
             # ・pullrequestまたはreadyから始まるリビジョンタグが付いている
             # ・PROTECTED_REVISION_TAGSに含まれるリビジョンである
-            traffic=$(gcloud run services describe "$service" --region=${{ env.region }} --format="json(spec.traffic)")
+            traffic=$(gcloud run services describe "$service" --region=${{ env.REGION }} --format="json(spec.traffic)")
             echo $traffic
             delete_tags=$(echo "$traffic" | jq -r --argjson protected_tags "$(printf '%s\n' "${protected_revision_tags[@]}" | jq -R . | jq -s .)" '
               .spec.traffic
@@ -173,5 +173,5 @@ jobs:
             ')
             echo "$delete_tags"
             # いらないリビジョンタグを消す
-            gcloud run services update-traffic "$service" --region=${{ env.region }} --remove-tags="$delete_tags"
+            gcloud run services update-traffic "$service" --region=${{ env.REGION }} --remove-tags="$delete_tags"
           done
