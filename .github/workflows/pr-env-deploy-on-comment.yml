@@ -64,7 +64,7 @@ jobs:
       - set-tag
     runs-on: ubuntu-latest
     environment:
-      name: staging
+      name: ${{ inputs.environment }}
     permissions:
       contents: 'read'
       id-token: 'write'
