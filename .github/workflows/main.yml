@@ -168,7 +168,12 @@ jobs:
               .spec.traffic
               | group_by(.revisionName)
               | map(select(
-                  all(.percent == null) and all((.tag | startswith("pullrequest") | not) and (.tag | startswith("protected") | not) and (.tag | startswith("ready") | not)) and (.revisionName | contains($values[]) | not)
+                  all(.percent == null) and
+                  all((.tag | startswith("pullrequest") | not) and
+                      (.tag | startswith("protected") | not) and
+                      (.tag | startswith("ready") | not)) and
+                  (.revisionName | gsub("^test-hello-";"") as $short_name |
+                      $values | index($short_name) | not)
                 ))
               | map(.[0].tag)
               | join(",")
