@@ -171,8 +171,8 @@ jobs:
                   all(.percent == null) and
                   all((.tag | startswith("pullrequest") | not) and
                       (.tag | startswith("ready") | not)) and
-                  (map($values[] | test(.revisionName)) | any)
-                ) | not)
+                  (all($values[] | test(.revisionName)) | not)
+                ))
               | map(.[0].tag)
               | join(",")
             ')
