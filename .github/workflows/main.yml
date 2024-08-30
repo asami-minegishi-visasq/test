@@ -62,8 +62,8 @@ jobs:
         id: get_tag
         run: |
           latest_tag=$(git tag -l --sort=version:refname "${{ inputs.revision_base }}-${{ inputs.app_version }}*" | tail -n 1)
-          # release_number=$(echo $latest_tag | sed "s/${{ inputs.revision_base }}-${{ inputs.app_version }}-//" | awk '{print $0+1}')
-          release_number=$(echo $latest_tag | sed "s/${{ inputs.revision_base }}-${{ inputs.app_version }}-//" | awk '{print $0}')
+          release_number=$(echo $latest_tag | sed "s/${{ inputs.revision_base }}-${{ inputs.app_version }}-//" | awk '{print $0+1}')
+          # release_number=$(echo $latest_tag | sed "s/${{ inputs.revision_base }}-${{ inputs.app_version }}-//" | awk '{print $0}')
           echo "release_number=${release_number}" >> $GITHUB_ENV
           
       - name: Create and Push New Tag
