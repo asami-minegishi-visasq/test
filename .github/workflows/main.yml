@@ -171,7 +171,10 @@ jobs:
                   all(.percent == null) and
                   all((.tag | startswith("pullrequest") | not) and
                       (.tag | startswith("ready") | not)) and
-                  (all($values[] | test(.revisionName)) | not)
+                  (any(
+                      $values[] as $value | 
+                      contains([.revisionName | gsub("^${{ inputs.revision_base }}"; "")]) 
+                    ) | not)
                 ))
               | map(.[0].tag)
               | join(",")
