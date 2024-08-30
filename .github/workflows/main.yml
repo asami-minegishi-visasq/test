@@ -162,7 +162,7 @@ jobs:
             # PROTECTED_REVISION_TAGSに含まれるリビジョンである
             traffic=$(gcloud run services describe "$service" --region=${{ inputs.region }} --format="json(spec.traffic)")
             echo $traffic
-            delete_tags=$(echo "$traffic" | jq -r --argjson values "$(jq -n --argjson arr '["${protected_revision_tags[@]}"]' '$arr')" '
+            delete_tags=$(echo "$traffic" | jq -r --argjson values "$(jq -n --argjson arr '["${{ vars.PROTECTED_REVISION_TAGS }}"]' '$arr')" '
               .spec.traffic
               | group_by(.revisionName)
               | map(select(
