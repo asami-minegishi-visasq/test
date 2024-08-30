@@ -162,19 +162,18 @@ jobs:
             # PROTECTED_REVISION_TAGSに含まれるリビジョンである
             traffic=$(gcloud run services describe "$service" --region=${{ inputs.region }} --format="json(spec.traffic)")
             echo $traffic
-            # JSON配列を作成
-            json_values=$(printf '%s\n' "${protected_revision_tags[@]}" | jq -R . | jq -s .)
-            delete_tags=$(echo "$traffic" | jq -r --argjson values "$json_values" '
+            # PROTECTED_REVISION_TAGS を JSON 配列に変換
+            json_protected_tags=$(printf '%s\n' "${protected_revision_tags[@]}" | jq -R . | jq -s .)
+            # traffic を処理して、除外するタグを取得
+            delete_tags=$(echo "$traffic" | jq -r --argjson protected_tags "$json_protected_tags" '
               .spec.traffic
               | group_by(.revisionName)
               | map(select(
                   all(.percent == null) and
                   all((.tag | startswith("pullrequest") | not) and
-                      (.tag | startswith("ready") | not)) and
-                  (any(
-                      $values[] as $value | 
-                      contains([.revisionName | gsub("^${{ inputs.revision_base }}"; "")]) 
-                    ) | not)
+                      (.tag | startswith("protected") | not) and
+                      (.tag | startswith("ready") | not) and
+                      (.tag | in($protected_tags[]) | not))
                 ))
               | map(.[0].tag)
               | join(",")
