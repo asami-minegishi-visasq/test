@@ -143,14 +143,30 @@ jobs:
 
       - name: Cleanup revision-tags
         run: |
+          protected_revision_tags=($(echo "${{ vars.PROTECTED_REVISION_TAGS }}" | tr ',' ' '))
           for service in ${{ needs.switch-traffic.outputs.services }}; do
+            # PROTECTED_REVISION_TAGSの中身があればArtifact Registryイメージに保護用のタグを付与する
+            for protected_revision_tag in "${protected_revision_tags[@]}"; do
+                # リビジョンの存在確認
+                image_url=$(gcloud run revisions describe "${service}-${protected_revision_tag}" --region=${{ env.REGION }} --format="value(image)" 2>/dev/null || echo "")
+                if [[ $protected_revision_tag == ${{ inputs.revision_base }}* ]] && [[ -n "$image_url" ]]; then
+                  # Artifact Registryイメージ保護
+                  image_url=$(echo $image_url | sed 's|gcr.io/${{ inputs.project_name }}|us-docker.pkg.dev/${{ inputs.project_name }}/gcr.io|g')
+                  tag_name="protected-vars-${protected_revision_tag}"
+                  gcloud artifacts docker tags add "${image_url}" "${image_url%@*}:${tag_name}"
+                fi
+            done
+            # 下記に該当しないリビジョンのタグを抽出する
+            # ・トラフィックが割り当てられている
+            # ・pullrequestまたはreadyから始まるリビジョンタグが付いている
+            # PROTECTED_REVISION_TAGSに含まれるリビジョンである
             traffic=$(gcloud run services describe "$service" --region=${{ inputs.region }} --format="json(spec.traffic)")
             echo $traffic
-            delete_tags=$(echo "$traffic" | jq -r '
+            delete_tags=$(echo "$traffic" | jq -r --argjson values "$(jq -n --argjson arr '["${protected_revision_tags[@]}"]' '$arr')" '
               .spec.traffic
               | group_by(.revisionName)
               | map(select(
-                  all(.percent == null) and all((.tag | startswith("pullrequest")) and (.tag | startswith("ready") | not))
+                  all(.percent == null) and all((.tag | startswith("pullrequest") | not) and (.tag | startswith("protected") | not) and (.tag | startswith("ready") | not)) and (.revisionName as $rev | $values | index($rev) | not)
                 ))
               | map(.[0].tag)
               | join(",")
@@ -158,5 +174,4 @@ jobs:
             echo "$delete_tags"
             # いらないリビジョンタグを消す
             gcloud run services update-traffic "$service" --region=${{ inputs.region }} --remove-tags="$delete_tags"
-            # gcloud run services update-traffic "$service" --region=${{ env.REGION }} --set-tags "${{ needs.set-tag.outputs.ready_tag_name }}=${revision},${{ needs.set-tag.outputs.tag_name }}=${revision}${protected_revision_tags}"
           done
