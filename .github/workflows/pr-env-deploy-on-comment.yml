@@ -27,6 +27,11 @@ on:
         type: string
         required: true
 
+env:
+  SERVICE_ACCOUNT: 'cloud-run-test'
+  IDENTITY_POOL_NAME: 'cloud-run-test'
+  IDENTITY_PROVIDER_NAME: 'github'
+
 jobs:
   # PRコメント時にfeatureブランチをステージング環境にデプロイする
   set-tag:
@@ -67,8 +72,8 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ inputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
-          service_account: "cloud-run-test@${{ inputs.project_name }}.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ inputs.project_id }}/locations/global/workloadIdentityPools/${{ env.IDENTITY_POOL_NAME }}/providers/${{ env.IDENTITY_PROVIDER_NAME }}"
+          service_account: "${{ env.SERVICE_ACCOUNT }}@${{ inputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
@@ -100,8 +105,8 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ inputs.project_id }}/locations/global/workloadIdentityPools/cloud-run-test/providers/github"
-          service_account: "cloud-run-test@${{ inputs.project_name }}.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ inputs.project_id }}/locations/global/workloadIdentityPools/${{ env.IDENTITY_POOL_NAME }}/providers/${{ env.IDENTITY_PROVIDER_NAME }}"
+          service_account: "${{ env.SERVICE_ACCOUNT }}@${{ inputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
