@@ -14,19 +14,35 @@ env:
   IDENTITY_POOL_NAME: 'cloud-run-test'
   IDENTITY_PROVIDER_NAME: 'github'
   REGION: 'us-central1'
-  environment: 'stg'
-  project_id: '400301755221'
-  project_name: 'private-asami-minegishi-01'
-  revision_base: 'staging'
-  slack_channel: 'C0185CQ1Q3S'
 
 jobs:
+  set-env:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/pr_deploy')
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set_env_production.outputs.environment || 'stg' }}
+      project_id: ${{ steps.set_env_production.outputs.project_id || '400301755221' }}
+      project_name: ${{ steps.set_env_production.outputs.project_name || 'private-asami-minegishi-01' }}
+      revision_base: ${{ steps.set_env_production.outputs.revision_base || 'staging' }}
+      slack_channel: ${{ steps.set_env_production.outputs.slack_channel || 'C0185CQ1Q3S' }}
+    steps:
+      - name: Set environment for production
+        id: set_env_production
+        if: contains(github.event.comment.body, '/pr_deploy_prod')
+        run: |
+          echo "/pr_deploy_prod は準備中です"
+          # echo "revision_base=release" >> $GITHUB_OUTPUT
+          # echo "environment=prod" >> $GITHUB_OUTPUT
+          # echo "project_id=400301755221" >> $GITHUB_OUTPUT
+          # echo "project_name=private-asami-minegishi-01" >> $GITHUB_OUTPUT
+          # echo "slack_channel=C0185CQ1Q3S" >> $GITHUB_OUTPUT
+
   # PRコメント時にfeatureブランチをステージング環境にデプロイする
   set-tag:
     runs-on: ubuntu-latest
+    needs: set-env
     outputs:
       release_number: ${{ steps.get_tag.outputs.release_number }}
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/pr_deploy')
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,23 +52,24 @@ jobs:
       - name: Get Tag List
         id: get_tag
         run: |
-          latest_tag=$(git tag -l --sort=version:refname "${{ env.revision_base }}-${{ inputs.app_version }}*" | tail -n 1)
-          release_number=$(echo $latest_tag | sed "s/${{ env.revision_base }}-${{ inputs.app_version }}-//" | awk '{print $0+1}')
+          latest_tag=$(git tag -l --sort=version:refname "${{ needs.set-env.outputs.revision_base }}-${{ inputs.app_version }}*" | tail -n 1)
+          release_number=$(echo $latest_tag | sed "s/${{ needs.set-env.outputs.revision_base }}-${{ inputs.app_version }}-//" | awk '{print $0+1}')
           echo "release_number=${release_number}" >> $GITHUB_OUTPUT
           
       - name: Create and Push New Tag
         id: set_tag
         run: |
-          tag_name="${{ env.revision_base }}-${{ inputs.app_version }}-${{ steps.get_tag.outputs.release_number }}"
+          tag_name="${{ needs.set-env.outputs.revision_base }}-${{ inputs.app_version }}-${{ steps.get_tag.outputs.release_number }}"
           git tag $tag_name
           git push origin $tag_name
 
   set-revision-tag:
     needs:
+      - set-env
       - set-tag
     runs-on: ubuntu-latest
     environment:
-      name: ${{ env.environment }}
+      name: ${{ needs.set-env.outputs.environment }}
     permissions:
       contents: 'read'
       id-token: 'write'
@@ -60,8 +77,8 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ env.project_id }}/locations/global/workloadIdentityPools/${{ env.IDENTITY_POOL_NAME }}/providers/${{ env.IDENTITY_PROVIDER_NAME }}"
-          service_account: "${{ env.SERVICE_ACCOUNT }}@${{ env.project_name }}.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ needs.set-env.outputs.project_id }}/locations/global/workloadIdentityPools/${{ env.IDENTITY_POOL_NAME }}/providers/${{ env.IDENTITY_PROVIDER_NAME }}"
+          service_account: "${{ env.SERVICE_ACCOUNT }}@${{ needs.set-env.outputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
@@ -71,7 +88,7 @@ jobs:
           for service in $services; do
             echo $service
             # デプロイしたリビジョンにPRベースのタグを付与する
-            revision="${service}-${{ env.revision_base }}-${{ inputs.app_version }}-${{ needs.set-tag.outputs.release_number }}"
+            revision="${service}-${{ needs.set-env.outputs.revision_base }}-${{ inputs.app_version }}-${{ needs.set-tag.outputs.release_number }}"
             gcloud run services update-traffic "$service" --region=${{ env.REGION }} --update-tags "pullrequest-${{ github.event.issue.number }}=${revision}"
             # リビジョンのイメージに保護用のタグを付与する
             image_url=$(gcloud run services describe "${service}" --region=${{ env.REGION }} --format="value(image)" | sed 's|gcr.io/${{ needs.set-tag.outputs.project_name }}|us-docker.pkg.dev/${{ needs.set-tag.outputs.project_name }}/gcr.io|g')
@@ -81,6 +98,7 @@ jobs:
 
   # PRがクローズされた時に専用環境があれば削除する
   delete_protected_tags_when_pr_closed:
+    needs: set-env
     if: |
       github.event_name == 'pull_request' && github.event.action == 'closed' ||
       github.event.issue.pull_request && contains(github.event.comment.body, '/pr_destroy') ||
@@ -93,8 +111,8 @@ jobs:
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/${{ env.project_id }}/locations/global/workloadIdentityPools/${{ env.IDENTITY_POOL_NAME }}/providers/${{ env.IDENTITY_PROVIDER_NAME }}"
-          service_account: "${{ env.SERVICE_ACCOUNT }}@${{ env.project_name }}.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/${{ needs.set-env.outputs.project_id }}/locations/global/workloadIdentityPools/${{ env.IDENTITY_POOL_NAME }}/providers/${{ env.IDENTITY_PROVIDER_NAME }}"
+          service_account: "${{ env.SERVICE_ACCOUNT }}@${{ needs.set-env.outputs.project_name }}.iam.gserviceaccount.com"
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
 
