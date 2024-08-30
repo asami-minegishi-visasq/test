@@ -14,7 +14,6 @@ env:
   IDENTITY_POOL_NAME: 'cloud-run-test'
   IDENTITY_PROVIDER_NAME: 'github'
   REGION: 'us-central1'
-  # 以下は環境ごとに出し分ける予定
   environment: 'stg'
   project_id: '400301755221'
   project_name: 'private-asami-minegishi-01'
